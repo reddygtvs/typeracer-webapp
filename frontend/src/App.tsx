@@ -24,7 +24,10 @@ function App() {
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-5 pt-3 pb-3">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-white uppercase tracking-widest m-0 text-glow-white">
+            <h1 
+              className="text-lg sm:text-xl md:text-2xl font-bold text-white uppercase tracking-widest m-0 text-glow-white cursor-pointer hover:text-spotify transition-colors duration-200"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               TYPERACER ANALYTICS<span className="bounce-favicon">.</span>
             </h1>
             

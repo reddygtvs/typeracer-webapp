@@ -4,6 +4,27 @@ import { getChart } from '../utils/api';
 import { ChartData } from '../types';
 import { BarChart3, LineChart, PieChart, Clock, TrendingUp } from 'lucide-react';
 
+const useWindowSize = () => {
+  const [windowSize, setWindowSize] = React.useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+  });
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return windowSize;
+};
+
 const chartConfigs = [
   {
     id: 'wpm-distribution',
@@ -135,6 +156,7 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
   const [chartData, setChartData] = React.useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string>('');
+  const { width } = useWindowSize();
   const Icon = config.icon;
 
   const loadChart = async () => {
@@ -173,34 +195,40 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
           </div>
         </div>
         
-        <div className="p-6">
-          {/* Fixed height container to prevent layout shift */}
-          <div className="h-[400px] flex items-center justify-center">
+        <div className="p-3 sm:p-6">
+          {/* Dynamic height container */}
+          <div className="w-full" style={{ height: width < 640 ? '220px' : width < 1024 ? '280px' : '320px' }}>
             {!chartData && !isLoading && !error && (
-              <button
-                onClick={loadChart}
-                className="px-4 py-2 bg-transparent border border-border-default text-text-secondary rounded-lg hover:bg-hover-bg hover:border-border-hover hover:text-text-accent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-spotify focus:ring-offset-2 focus:ring-offset-black"
-              >
-                Load Chart
-              </button>
+              <div className="h-full flex items-center justify-center">
+                <button
+                  onClick={loadChart}
+                  className="px-4 py-2 bg-transparent border border-border-default text-text-secondary rounded-lg hover:bg-hover-bg hover:border-border-hover hover:text-text-accent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-spotify focus:ring-offset-2 focus:ring-offset-black"
+                >
+                  Load Chart
+                </button>
+              </div>
             )}
             
             {isLoading && (
-              <div className="flex flex-col items-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-spotify"></div>
-                <p className="mt-4 text-sm text-text-secondary">Loading chart...</p>
+              <div className="h-full flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-spotify"></div>
+                  <p className="mt-4 text-sm text-text-secondary">Loading chart...</p>
+                </div>
               </div>
             )}
             
             {error && (
-              <div className="flex flex-col items-center">
-                <p className="text-red-400 text-sm">{error}</p>
-                <button
-                  onClick={loadChart}
-                  className="mt-2 px-4 py-2 bg-red-900/20 border border-red-700/30 text-red-300 rounded-lg hover:bg-red-800/20 hover:border-red-600/50 transition-all duration-200"
-                >
-                  Retry
-                </button>
+              <div className="h-full flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                  <p className="text-red-400 text-sm">{error}</p>
+                  <button
+                    onClick={loadChart}
+                    className="mt-2 px-4 py-2 bg-red-900/20 border border-red-700/30 text-red-300 rounded-lg hover:bg-red-800/20 hover:border-red-600/50 transition-all duration-200"
+                  >
+                    Retry
+                  </button>
+                </div>
               </div>
             )}
             
@@ -210,27 +238,40 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
                 layout={{
                   ...chartData.layout,
                   autosize: true,
-                  margin: { l: 50, r: 50, t: 50, b: 50 },
+                  height: width < 640 ? 200 : width < 1024 ? 260 : 300,
+                  margin: { 
+                    l: width < 640 ? 40 : 50,
+                    r: width < 640 ? 30 : 40,
+                    t: width < 640 ? 30 : 40,
+                    b: width < 640 ? 50 : 60
+                  },
                   paper_bgcolor: 'rgba(0,0,0,0)',
                   plot_bgcolor: 'rgba(0,0,0,0)',
                   font: {
                     color: 'rgb(255, 255, 255)',
-                    family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif'
+                    family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif',
+                    size: width < 640 ? 10 : width < 1024 ? 11 : 12
                   },
                   xaxis: {
                     ...chartData.layout.xaxis,
                     color: 'rgb(181, 179, 173)',
                     gridcolor: 'rgb(55, 55, 53)',
-                    zerolinecolor: 'rgb(55, 55, 53)'
+                    zerolinecolor: 'rgb(55, 55, 53)',
+                    tickfont: {
+                      size: width < 640 ? 9 : width < 1024 ? 10 : 11
+                    }
                   },
                   yaxis: {
                     ...chartData.layout.yaxis,
                     color: 'rgb(181, 179, 173)',
                     gridcolor: 'rgb(55, 55, 53)',
-                    zerolinecolor: 'rgb(55, 55, 53)'
+                    zerolinecolor: 'rgb(55, 55, 53)',
+                    tickfont: {
+                      size: width < 640 ? 9 : width < 1024 ? 10 : 11
+                    }
                   }
                 }}
-                style={{ width: '100%', height: '400px' }}
+                style={{ width: '100%', height: '100%' }}
                 config={{ 
                   displayModeBar: false,
                   responsive: true,
@@ -245,7 +286,7 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
 
 const ChartGrid: React.FC = () => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
       {chartConfigs.map((config, index) => (
         <ChartCard 
           key={config.id} 

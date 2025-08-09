@@ -156,7 +156,9 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
   const [chartData, setChartData] = React.useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string>('');
+  const [hasTriggeredLoad, setHasTriggeredLoad] = React.useState(false);
   const { width } = useWindowSize();
+  const chartRef = React.useRef<HTMLDivElement>(null);
   const Icon = config.icon;
 
   const loadChart = async () => {
@@ -178,11 +180,48 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
   React.useEffect(() => {
     if (autoLoad) {
       loadChart();
+      setHasTriggeredLoad(true);
+      return;
     }
-  }, [autoLoad]);
+
+    // Don't observe if already triggered or if chart is already loaded
+    if (hasTriggeredLoad || chartData) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasTriggeredLoad && !chartData) {
+          loadChart();
+          setHasTriggeredLoad(true);
+          // Disconnect observer immediately after triggering
+          observer.disconnect();
+        }
+      },
+      {
+        threshold: 0.1, // Trigger when 10% of the chart is visible
+        rootMargin: '50px', // Start loading 50px before it comes into view
+      }
+    );
+
+    if (chartRef.current) {
+      observer.observe(chartRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [autoLoad, hasTriggeredLoad, chartData]);
+
+  // Separate effect to clean up observer when chart is loaded
+  React.useEffect(() => {
+    if (chartData && hasTriggeredLoad) {
+      // Chart is loaded, no need for observer anymore
+      return;
+    }
+  }, [chartData, hasTriggeredLoad]);
 
     return (
-      <div className="bg-bg-primary rounded-lg border border-border-default overflow-hidden hover:border-border-hover transition-all duration-200">
+      <div ref={chartRef} className="bg-bg-primary rounded-lg border border-border-default overflow-hidden hover:border-border-hover transition-all duration-200">
         <div className="px-6 py-4 bg-hover-bg border-b border-border-default">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-bg-primary border border-border-default rounded-lg">
@@ -200,12 +239,10 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
           <div className="w-full" style={{ height: width < 640 ? '220px' : width < 1024 ? '280px' : '320px' }}>
             {!chartData && !isLoading && !error && (
               <div className="h-full flex items-center justify-center">
-                <button
-                  onClick={loadChart}
-                  className="px-4 py-2 bg-transparent border border-border-default text-text-secondary rounded-lg hover:bg-hover-bg hover:border-border-hover hover:text-text-accent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-spotify focus:ring-offset-2 focus:ring-offset-black"
-                >
-                  Load Chart
-                </button>
+                <div className="flex flex-col items-center">
+                  <div className="animate-pulse rounded-full h-8 w-8 bg-spotify/20"></div>
+                  <p className="mt-4 text-sm text-text-secondary">Chart will load when visible...</p>
+                </div>
               </div>
             )}
             
@@ -285,13 +322,23 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
 };
 
 const ChartGrid: React.FC = () => {
+  // Priority charts for immediate loading (highest hiring impact)
+  const priorityChartIds = [
+    'wpm-distribution',      // Shows skill level distribution
+    'accuracy-distribution', // Shows consistency
+    'performance-over-time', // Shows improvement trends
+    'daily-performance',     // Shows daily trends
+    'rolling-average',       // Shows progression over time  
+    'rank-distribution'      // Shows competitive performance
+  ];
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-      {chartConfigs.map((config, index) => (
+      {chartConfigs.map((config) => (
         <ChartCard 
           key={config.id} 
           config={config} 
-          autoLoad={index < 2} // Auto-load first 2 charts
+          autoLoad={priorityChartIds.includes(config.id)}
         />
       ))}
     </div>

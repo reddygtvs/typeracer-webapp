@@ -3,6 +3,7 @@ import Plot from 'react-plotly.js';
 import { getChart } from '../utils/api';
 import { ChartData } from '../types';
 import { BarChart3, LineChart, PieChart, Clock, TrendingUp } from 'lucide-react';
+import ChartInsights from './ChartInsights';
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = React.useState({
@@ -160,6 +161,16 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
   const { width } = useWindowSize();
   const chartRef = React.useRef<HTMLDivElement>(null);
   const Icon = config.icon;
+  
+  // Mock insights for now - will be replaced with real data from API
+  const mockInsights = {
+    insights: [
+      "Insufficient data for detailed analysis",
+      `Showing data for ${config.title}`,
+      "Upload more data for insights"
+    ],
+    has_insights: false
+  };
 
   const loadChart = async () => {
     if (isLoading || chartData) return;
@@ -221,101 +232,114 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
   }, [chartData, hasTriggeredLoad]);
 
     return (
-      <div ref={chartRef} className="bg-bg-primary rounded-lg border border-border-default overflow-hidden hover:border-border-hover transition-all duration-200">
-        <div className="px-6 py-4 bg-hover-bg border-b border-border-default">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-bg-primary border border-border-default rounded-lg">
-              <Icon className="h-5 w-5 text-spotify" />
+      <div ref={chartRef} className="flex flex-col lg:flex-row gap-6">
+        {/* Chart Box - 50% width on desktop */}
+        <div className="w-full lg:w-1/2 bg-bg-primary rounded-lg border border-border-default overflow-hidden hover:border-border-hover transition-all duration-200">
+          {/* Header */}
+          <div className="px-6 py-4 bg-hover-bg border-b border-border-default">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-bg-primary border border-border-default rounded-lg">
+                <Icon className="h-5 w-5 text-spotify" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-text-primary text-glow-white">{config.title}</h3>
+                <p className="text-sm text-text-secondary">{config.description}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-text-primary text-glow-white">{config.title}</h3>
-              <p className="text-sm text-text-secondary">{config.description}</p>
+          </div>
+          
+          {/* Chart Section */}
+          <div className="p-3 sm:p-6">
+            <div className="w-full" style={{ height: width < 640 ? '220px' : width < 1024 ? '280px' : '320px' }}>
+              {!chartData && !isLoading && !error && (
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-pulse rounded-full h-8 w-8 bg-spotify/20"></div>
+                    <p className="mt-4 text-sm text-text-secondary">Chart will load when visible...</p>
+                  </div>
+                </div>
+              )}
+              
+              {isLoading && (
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-spotify"></div>
+                    <p className="mt-4 text-sm text-text-secondary">Loading chart...</p>
+                  </div>
+                </div>
+              )}
+              
+              {error && (
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center">
+                    <p className="text-red-400 text-sm">{error}</p>
+                    <button
+                      onClick={loadChart}
+                      className="mt-2 px-4 py-2 bg-red-900/20 border border-red-700/30 text-red-300 rounded-lg hover:bg-red-800/20 hover:border-red-600/50 transition-all duration-200"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {chartData && (
+                <Plot
+                  data={chartData.data}
+                  layout={{
+                    ...chartData.layout,
+                    autosize: true,
+                    height: width < 640 ? 200 : width < 1024 ? 260 : 300,
+                    margin: { 
+                      l: width < 640 ? 40 : 50,
+                      r: width < 640 ? 30 : 40,
+                      t: width < 640 ? 30 : 40,
+                      b: width < 640 ? 50 : 60
+                    },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: {
+                      color: 'rgb(255, 255, 255)',
+                      family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif',
+                      size: width < 640 ? 10 : width < 1024 ? 11 : 12
+                    },
+                    xaxis: {
+                      ...chartData.layout.xaxis,
+                      color: 'rgb(181, 179, 173)',
+                      gridcolor: 'rgb(55, 55, 53)',
+                      zerolinecolor: 'rgb(55, 55, 53)',
+                      tickfont: {
+                        size: width < 640 ? 9 : width < 1024 ? 10 : 11
+                      }
+                    },
+                    yaxis: {
+                      ...chartData.layout.yaxis,
+                      color: 'rgb(181, 179, 173)',
+                      gridcolor: 'rgb(55, 55, 53)',
+                      zerolinecolor: 'rgb(55, 55, 53)',
+                      tickfont: {
+                        size: width < 640 ? 9 : width < 1024 ? 10 : 11
+                      }
+                    }
+                  }}
+                  style={{ width: '100%', height: '100%' }}
+                  config={{ 
+                    displayModeBar: false,
+                    responsive: true,
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
         
-        <div className="p-3 sm:p-6">
-          {/* Dynamic height container */}
-          <div className="w-full" style={{ height: width < 640 ? '220px' : width < 1024 ? '280px' : '320px' }}>
-            {!chartData && !isLoading && !error && (
-              <div className="h-full flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                  <div className="animate-pulse rounded-full h-8 w-8 bg-spotify/20"></div>
-                  <p className="mt-4 text-sm text-text-secondary">Chart will load when visible...</p>
-                </div>
-              </div>
-            )}
-            
-            {isLoading && (
-              <div className="h-full flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-spotify"></div>
-                  <p className="mt-4 text-sm text-text-secondary">Loading chart...</p>
-                </div>
-              </div>
-            )}
-            
-            {error && (
-              <div className="h-full flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                  <p className="text-red-400 text-sm">{error}</p>
-                  <button
-                    onClick={loadChart}
-                    className="mt-2 px-4 py-2 bg-red-900/20 border border-red-700/30 text-red-300 rounded-lg hover:bg-red-800/20 hover:border-red-600/50 transition-all duration-200"
-                  >
-                    Retry
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {chartData && (
-              <Plot
-                data={chartData.data}
-                layout={{
-                  ...chartData.layout,
-                  autosize: true,
-                  height: width < 640 ? 200 : width < 1024 ? 260 : 300,
-                  margin: { 
-                    l: width < 640 ? 40 : 50,
-                    r: width < 640 ? 30 : 40,
-                    t: width < 640 ? 30 : 40,
-                    b: width < 640 ? 50 : 60
-                  },
-                  paper_bgcolor: 'rgba(0,0,0,0)',
-                  plot_bgcolor: 'rgba(0,0,0,0)',
-                  font: {
-                    color: 'rgb(255, 255, 255)',
-                    family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif',
-                    size: width < 640 ? 10 : width < 1024 ? 11 : 12
-                  },
-                  xaxis: {
-                    ...chartData.layout.xaxis,
-                    color: 'rgb(181, 179, 173)',
-                    gridcolor: 'rgb(55, 55, 53)',
-                    zerolinecolor: 'rgb(55, 55, 53)',
-                    tickfont: {
-                      size: width < 640 ? 9 : width < 1024 ? 10 : 11
-                    }
-                  },
-                  yaxis: {
-                    ...chartData.layout.yaxis,
-                    color: 'rgb(181, 179, 173)',
-                    gridcolor: 'rgb(55, 55, 53)',
-                    zerolinecolor: 'rgb(55, 55, 53)',
-                    tickfont: {
-                      size: width < 640 ? 9 : width < 1024 ? 10 : 11
-                    }
-                  }
-                }}
-                style={{ width: '100%', height: '100%' }}
-                config={{ 
-                  displayModeBar: false,
-                  responsive: true,
-                }}
-              />
-            )}
-          </div>
+        {/* Insights Box - 50% width on desktop, separate box */}
+        <div className="w-full lg:w-1/2">
+          <ChartInsights 
+            insights={chartData?.insights || mockInsights.insights}
+            hasInsights={chartData?.has_insights || mockInsights.has_insights}
+            title={config.title}
+          />
         </div>
       </div>
     );
@@ -333,7 +357,7 @@ const ChartGrid: React.FC = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+    <div className="space-y-6">
       {chartConfigs.map((config) => (
         <ChartCard 
           key={config.id} 

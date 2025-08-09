@@ -16,4 +16,6 @@ export type ChartData = {
   data: any[];
   layout: any;
   config?: any;
+  insights?: string[];
+  has_insights?: boolean;
 };

@@ -11,6 +11,7 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, Any
 import io
+from insights import calculate_insights_with_fallback
 
 app = FastAPI(title="TypeRacer Analytics API", version="1.0.0")
 
@@ -208,7 +209,14 @@ async def wpm_distribution():
         hovertemplate="<b>%{x} WPM</b><br>Races: %{y}<br><extra></extra>"
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "wpm-distribution")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/performance-over-time")
 async def performance_over_time():
@@ -241,7 +249,14 @@ async def performance_over_time():
         font=dict(family="Inter, sans-serif")
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "performance-over-time")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/rolling-average")
 async def rolling_average():
@@ -273,7 +288,14 @@ async def rolling_average():
         font=dict(family="Inter, sans-serif")
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "rolling-average")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/rank-distribution")
 async def rank_distribution():
@@ -309,7 +331,14 @@ async def rank_distribution():
         showlegend=False
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "rank-distribution")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/hourly-performance")
 async def hourly_performance():
@@ -343,7 +372,14 @@ async def hourly_performance():
         showlegend=False
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "hourly-performance")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/accuracy-distribution")
 async def accuracy_distribution():
@@ -370,7 +406,14 @@ async def accuracy_distribution():
         font=dict(family="Inter, sans-serif")
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "accuracy-distribution")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/daily-performance")
 async def daily_performance():
@@ -402,7 +445,14 @@ async def daily_performance():
         font=dict(family="Inter, sans-serif")
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "daily-performance")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/wpm-vs-accuracy")
 async def wpm_vs_accuracy():
@@ -429,7 +479,14 @@ async def wpm_vs_accuracy():
         font=dict(family="Inter, sans-serif")
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "wpm-vs-accuracy")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/win-rate-monthly")
 async def win_rate_monthly():
@@ -462,7 +519,14 @@ async def win_rate_monthly():
             font=dict(family="Inter, sans-serif")
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "win-rate-monthly")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in win-rate-monthly endpoint: {str(e)}")
@@ -509,7 +573,14 @@ async def top_texts():
         xaxis_tickangle=-45
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "top-texts")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/consistency-score")
 async def consistency_score():
@@ -542,7 +613,14 @@ async def consistency_score():
         font=dict(family="Inter, sans-serif")
     )
     
-    return json.loads(fig.to_json())
+    # Calculate insights
+    insights_data = calculate_insights_with_fallback(df_global, "consistency-score")
+    
+    # Return chart data with insights
+    chart_data = json.loads(fig.to_json())
+    chart_data.update(insights_data)
+    
+    return chart_data
 
 @app.get("/charts/accuracy-by-rank")
 async def accuracy_by_rank():
@@ -598,7 +676,14 @@ async def accuracy_by_rank():
             textposition='outside'
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "accuracy-by-rank")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in accuracy-by-rank endpoint: {str(e)}")
@@ -635,7 +720,14 @@ async def cumulative_accuracy():
             font=dict(family="Inter, sans-serif")
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "cumulative-accuracy")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in cumulative-accuracy endpoint: {str(e)}")
@@ -666,7 +758,14 @@ async def wmp_by_rank_boxplot():
             font=dict(family="Inter, sans-serif")
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "wpm-by-rank-boxplot")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in wpm-by-rank-boxplot endpoint: {str(e)}")
@@ -704,7 +803,14 @@ async def racers_impact():
             font=dict(family="Inter, sans-serif")
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "racers-impact")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in racers-impact endpoint: {str(e)}")
@@ -787,7 +893,14 @@ async def frequent_texts_improvement():
             gridcolor="rgb(55, 55, 53)"
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "frequent-texts-improvement")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in frequent-texts-improvement endpoint: {str(e)}")
@@ -851,7 +964,14 @@ async def top_texts_distribution():
             )
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "top-texts-distribution")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in top-texts-distribution endpoint: {str(e)}")
@@ -897,7 +1017,14 @@ async def win_rate_after_win():
             showlegend=False
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "win-rate-after-win")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in win-rate-after-win endpoint: {str(e)}")
@@ -951,7 +1078,14 @@ async def fastest_slowest_races():
             font=dict(family="Inter, sans-serif")
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "fastest-slowest-races")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in fastest-slowest-races endpoint: {str(e)}")
@@ -1020,7 +1154,14 @@ async def time_between_races():
             textposition='outside'
         )
         
-        return json.loads(fig.to_json())
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df_global, "time-between-races")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
         
     except Exception as e:
         print(f"Error in time-between-races endpoint: {str(e)}")

@@ -28,7 +28,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   return (
     <div className="space-y-8">
       {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatsCard
           title="Total Races"
           value={formatNumber(stats.total_races)}

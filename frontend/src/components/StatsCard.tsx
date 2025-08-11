@@ -18,11 +18,11 @@ const colorVariants = {
 
 const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon: Icon, description, color }) => {
   return (
-    <div className="p-6">
+    <div className="p-8">
       <div>
-        <p className="text-sm font-medium text-text-secondary">{title}</p>
-        <p className="text-2xl font-bold text-text-primary mt-2 text-glow-white">{value}</p>
-        <p className="text-xs text-text-secondary mt-1">{description}</p>
+        <p className="text-lg font-medium text-text-secondary">{title}</p>
+        <p className="text-4xl font-bold text-text-primary mt-4 text-glow-white">{value}</p>
+        <p className="text-sm text-text-secondary mt-2">{description}</p>
       </div>
     </div>
   );

@@ -237,7 +237,7 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
         <div className="w-full lg:w-1/2 overflow-hidden">
           {/* Chart Section */}
           <div className="pt-3 px-1 pb-0.5 sm:pt-4 sm:px-2 sm:pb-1 border border-border-default">
-            <div className="w-full" style={{ height: width < 640 ? '260px' : width < 1024 ? '340px' : '400px' }}>
+            <div className="w-full" style={{ height: width < 640 ? '240px' : width < 1024 ? '300px' : '320px' }}>
               {!chartData && !isLoading && !error && (
                 <div className="h-full flex items-center justify-center">
                   <div className="flex flex-col items-center">
@@ -276,7 +276,7 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
                   layout={{
                     ...chartData.layout,
                     autosize: true,
-                    height: width < 640 ? 240 : width < 1024 ? 320 : 380,
+                    height: width < 640 ? 220 : width < 1024 ? 280 : 300,
                     margin: { 
                       l: width < 640 ? 40 : 50,
                       r: width < 640 ? 30 : 40,

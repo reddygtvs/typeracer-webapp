@@ -1,21 +1,78 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, BarChart3, TrendingUp } from 'lucide-react';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import { RaceData } from './types';
+import { getStats } from './utils/api';
 
 function App() {
   const [data, setData] = useState<RaceData | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleDataUpload = useCallback((uploadedData: RaceData) => {
-    setData(uploadedData);
-    setLoading(false);
+  const processCSVData = async (csvData: string, source: string) => {
+    setLoading(true);
+    try {
+      const stats = await getStats(csvData);
+      const raceData: RaceData = { stats, csvData };
+      setData(raceData);
+
+      // Optional: Persist to localStorage
+      localStorage.setItem('typeracer-csv', csvData);
+      localStorage.setItem('typeracer-stats', JSON.stringify(stats));
+      localStorage.setItem('typeracer-source', source);
+    } catch (error: any) {
+      console.error('Failed to process CSV:', error);
+      alert(error.response?.data?.detail || 'Failed to process CSV data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    const csvData = await file.text();
+    await processCSVData(csvData, 'upload');
+  }, []);
+
+  const handleSampleData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/sample-data.csv');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sample data');
+      }
+      const csvData = await response.text();
+      await processCSVData(csvData, 'sample');
+    } catch (error) {
+      console.error('Failed to load sample data:', error);
+      alert('Failed to load sample data. Make sure sample-data.csv exists in the public folder.');
+      setLoading(false);
+    }
   }, []);
 
   const handleReset = useCallback(() => {
     setData(null);
     setLoading(false);
+    localStorage.removeItem('typeracer-csv');
+    localStorage.removeItem('typeracer-stats');
+    localStorage.removeItem('typeracer-source');
+  }, []);
+
+  // Restore data on page load
+  useEffect(() => {
+    const savedCsv = localStorage.getItem('typeracer-csv');
+    const savedStats = localStorage.getItem('typeracer-stats');
+    if (savedCsv && savedStats) {
+      try {
+        const stats = JSON.parse(savedStats);
+        setData({ csvData: savedCsv, stats });
+      } catch (error) {
+        console.error('Failed to restore saved data:', error);
+        // Clear corrupted data
+        localStorage.removeItem('typeracer-csv');
+        localStorage.removeItem('typeracer-stats');
+        localStorage.removeItem('typeracer-source');
+      }
+    }
   }, []);
 
   return (
@@ -61,10 +118,10 @@ function App() {
                 </p>
               </div>
               
-              <FileUpload 
-                onUpload={handleDataUpload}
+              <FileUpload
+                onFileUpload={handleFileUpload}
+                onSampleData={handleSampleData}
                 loading={loading}
-                setLoading={setLoading}
               />
             </div>
           </div>

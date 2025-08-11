@@ -26,7 +26,7 @@ def calculate_insights_with_fallback(df: pl.DataFrame, chart_type: str) -> Dict[
 def calculate_chart_insights(df: pl.DataFrame, chart_type: str) -> List[str]:
     """Calculate specific insights based on chart type"""
     
-    if chart_type == "wpm-distribution":
+    if chart_type == "wpm-distribution" or chart_type == "wmp-distribution":
         return calculate_wpm_distribution_insights(df)
     elif chart_type == "accuracy-distribution":
         return calculate_accuracy_distribution_insights(df)

@@ -9,8 +9,10 @@ from plotly.utils import PlotlyJSONEncoder
 import json
 import numpy as np
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import io
+import hashlib
+from functools import lru_cache
 from insights import calculate_insights_with_fallback
 from models import ChartRequest, StatsResponse, ChartResponse
 from config import settings
@@ -24,6 +26,49 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# In-memory DataFrame cache
+_dataframe_cache: Dict[str, pl.DataFrame] = {}
+
+# Chart result cache for request deduplication
+_chart_cache: Dict[str, Dict[str, Any]] = {}
+
+def get_csv_hash(csv_data: str) -> str:
+    """Generate hash for CSV data to use as cache key"""
+    return hashlib.md5(csv_data.encode()).hexdigest()[:12]
+
+def get_or_process_dataframe(csv_data: str) -> pl.DataFrame:
+    """Get processed DataFrame from cache or process and cache it"""
+    csv_hash = get_csv_hash(csv_data)
+    
+    if csv_hash not in _dataframe_cache:
+        _dataframe_cache[csv_hash] = process_csv_data(csv_data)
+        
+        # Simple cache size management - keep only last 10 datasets
+        if len(_dataframe_cache) > 10:
+            oldest_key = next(iter(_dataframe_cache))
+            del _dataframe_cache[oldest_key]
+    
+    return _dataframe_cache[csv_hash]
+
+def get_chart_cache_key(csv_data: str, chart_type: str) -> str:
+    """Generate cache key for chart results"""
+    csv_hash = get_csv_hash(csv_data)
+    return f"{csv_hash}_{chart_type}"
+
+def get_or_generate_chart(csv_data: str, chart_type: str, generator_func) -> Dict[str, Any]:
+    """Get chart from cache or generate and cache it"""
+    cache_key = get_chart_cache_key(csv_data, chart_type)
+    
+    if cache_key not in _chart_cache:
+        _chart_cache[cache_key] = generator_func()
+        
+        # Simple cache size management - keep only last 50 charts
+        if len(_chart_cache) > 50:
+            oldest_key = next(iter(_chart_cache))
+            del _chart_cache[oldest_key]
+    
+    return _chart_cache[cache_key]
 
 
 def process_race_data(df: pl.DataFrame) -> pl.DataFrame:
@@ -55,9 +100,15 @@ def process_race_data(df: pl.DataFrame) -> pl.DataFrame:
     return df
 
 def process_csv_data(csv_data: str) -> pl.DataFrame:
-    """Process CSV data from string"""
+    """Process CSV data from string with streaming for large files"""
     try:
-        df = pl.read_csv(io.StringIO(csv_data))
+        # For large CSV files (>500KB), use streaming approach
+        if len(csv_data) > 500_000:
+            # Use StringIO with buffer optimization for large files
+            csv_buffer = io.StringIO(csv_data)
+            df = pl.read_csv(csv_buffer, batch_size=10000)
+        else:
+            df = pl.read_csv(io.StringIO(csv_data))
         return process_race_data(df)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid CSV data: {str(e)}")
@@ -69,7 +120,7 @@ async def health_check():
 @app.post("/stats")
 async def get_stats(request: ChartRequest):
     """Get basic statistics from CSV data"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     avg_accuracy = df["accuracy"].mean()
     return {
@@ -87,83 +138,87 @@ async def get_stats(request: ChartRequest):
 @app.post("/charts/wpm-distribution")
 async def wmp_distribution(request: ChartRequest):
     """Generate WPM distribution chart"""
-    df = process_csv_data(request.csv_data)
     
-    # Convert to pandas for plotly compatibility
-    df_pandas = df.to_pandas()
-    
-    # Calculate key statistics
-    mean_wpm = df_pandas["wpm"].mean()
-    median_wpm = df_pandas["wpm"].median()
-    
-    # Create histogram with better bin size (15 bins for clearer visualization)
-    fig = px.histogram(
-        df_pandas, 
-        x="wpm", 
-        nbins=15,  # Reduced for clearer bars
-        title="WPM Distribution",
-        labels={"wpm": "Words Per Minute", "count": "Number of Races"},
-        color_discrete_sequence=["#39FF14"]  # Spotify green for visibility
-    )
-    
-    # Add mean and median lines for context (no annotations to prevent overlap)
-    fig.add_vline(
-        x=mean_wpm, 
-        line_dash="dash", 
-        line_color="#FF6B6B",
-        line_width=2
-    )
-    
-    fig.add_vline(
-        x=median_wpm, 
-        line_dash="dot", 
-        line_color="#74B9FF",
-        line_width=2
-    )
-    
-    # Add clean legend info instead of overlapping annotations
-    fig.update_layout(
-        title=f"WPM Distribution (Mean: {mean_wpm:.1f}, Median: {median_wpm:.1f})"
-    )
-    
-    fig.update_layout(
-        template="plotly_dark",
-        height=400,
-        font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif"),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        title_font_color="white",
-        showlegend=False,
-        xaxis=dict(
-            title_font_color="rgb(181, 179, 173)",
-            tickfont_color="rgb(181, 179, 173)",
-            gridcolor="rgb(55, 55, 53)"
-        ),
-        yaxis=dict(
-            title_font_color="rgb(181, 179, 173)", 
-            tickfont_color="rgb(181, 179, 173)",
-            gridcolor="rgb(55, 55, 53)"
+    def generate_chart():
+        df = get_or_process_dataframe(request.csv_data)
+        
+        # Calculate key statistics with Polars
+        mean_wpm = df["wpm"].mean()
+        median_wpm = df["wpm"].median()
+        
+        # Convert only WPM column to pandas for histogram
+        df_pandas = df.select(["wpm"]).to_pandas()
+        
+        # Create histogram with better bin size (15 bins for clearer visualization)
+        fig = px.histogram(
+            df_pandas, 
+            x="wpm", 
+            nbins=15,  # Reduced for clearer bars
+            title="WPM Distribution",
+            labels={"wpm": "Words Per Minute", "count": "Number of Races"},
+            color_discrete_sequence=["#39FF14"]  # Spotify green for visibility
         )
-    )
+        
+        # Add mean and median lines for context (no annotations to prevent overlap)
+        fig.add_vline(
+            x=mean_wpm, 
+            line_dash="dash", 
+            line_color="#FF6B6B",
+            line_width=2
+        )
+        
+        fig.add_vline(
+            x=median_wpm, 
+            line_dash="dot", 
+            line_color="#74B9FF",
+            line_width=2
+        )
+        
+        # Add clean legend info instead of overlapping annotations
+        fig.update_layout(
+            title=f"WPM Distribution (Mean: {mean_wpm:.1f}, Median: {median_wpm:.1f})"
+        )
+        
+        fig.update_layout(
+            template="plotly_dark",
+            height=400,
+            font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif"),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            title_font_color="white",
+            showlegend=False,
+            xaxis=dict(
+                title_font_color="rgb(181, 179, 173)",
+                tickfont_color="rgb(181, 179, 173)",
+                gridcolor="rgb(55, 55, 53)"
+            ),
+            yaxis=dict(
+                title_font_color="rgb(181, 179, 173)", 
+                tickfont_color="rgb(181, 179, 173)",
+                gridcolor="rgb(55, 55, 53)"
+            )
+        )
     
-    # Update hover template for better UX
-    fig.update_traces(
-        hovertemplate="<b>%{x} WPM</b><br>Races: %{y}<br><extra></extra>"
-    )
+        # Update hover template for better UX
+        fig.update_traces(
+            hovertemplate="<b>%{x} WPM</b><br>Races: %{y}<br><extra></extra>"
+        )
+        
+        # Calculate insights
+        insights_data = calculate_insights_with_fallback(df, "wmp-distribution")
+        
+        # Return chart data with insights
+        chart_data = json.loads(fig.to_json())
+        chart_data.update(insights_data)
+        
+        return chart_data
     
-    # Calculate insights
-    insights_data = calculate_insights_with_fallback(df, "wmp-distribution")
-    
-    # Return chart data with insights
-    chart_data = json.loads(fig.to_json())
-    chart_data.update(insights_data)
-    
-    return chart_data
+    return get_or_generate_chart(request.csv_data, "wpm-distribution", generate_chart)
 
 @app.post("/charts/performance-over-time")
 async def performance_over_time(request: ChartRequest):
     """Generate performance over time chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     # Monthly average WPM
     monthly_avg = df.group_by("year_month").agg([
@@ -200,7 +255,7 @@ async def performance_over_time(request: ChartRequest):
 @app.post("/charts/rolling-average")
 async def rolling_average(request: ChartRequest):
     """Generate rolling average chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     # Calculate rolling average
     df_with_rolling = df.with_columns([
@@ -236,7 +291,7 @@ async def rolling_average(request: ChartRequest):
 @app.post("/charts/rank-distribution")
 async def rank_distribution(request: ChartRequest):
     """Generate rank distribution chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     # Calculate rank distribution
     rank_dist = df.group_by("rank").agg([
@@ -276,7 +331,7 @@ async def rank_distribution(request: ChartRequest):
 @app.post("/charts/hourly-performance")
 async def hourly_performance(request: ChartRequest):
     """Generate hourly performance chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     # Calculate hourly average
     hourly_avg = df.group_by("hour").agg([
@@ -314,7 +369,7 @@ async def hourly_performance(request: ChartRequest):
 @app.post("/charts/accuracy-distribution")
 async def accuracy_distribution(request: ChartRequest):
     """Generate accuracy distribution chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     df_pandas = df.to_pandas()
     
@@ -345,7 +400,7 @@ async def accuracy_distribution(request: ChartRequest):
 @app.post("/charts/daily-performance")
 async def daily_performance(request: ChartRequest):
     """Generate daily performance over time chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     # Daily average WPM
     daily_avg = df.group_by("date").agg([
@@ -381,7 +436,7 @@ async def daily_performance(request: ChartRequest):
 @app.post("/charts/wpm-vs-accuracy")
 async def wpm_vs_accuracy(request: ChartRequest):
     """Generate WPM vs Accuracy scatter plot"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     df_pandas = df.to_pandas()
     
@@ -412,7 +467,7 @@ async def wpm_vs_accuracy(request: ChartRequest):
 @app.post("/charts/win-rate-monthly")
 async def win_rate_monthly(request: ChartRequest):
     """Generate monthly win rate chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Monthly win rate
@@ -454,7 +509,7 @@ async def win_rate_monthly(request: ChartRequest):
 @app.post("/charts/top-texts")
 async def top_texts(request: ChartRequest):
     """Generate top vs bottom texts performance chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     # Calculate average WPM by text
     text_wpm = df.group_by("text_id").agg([
@@ -500,7 +555,7 @@ async def top_texts(request: ChartRequest):
 @app.post("/charts/consistency-score")
 async def consistency_score(request: ChartRequest):
     """Generate consistency score over time chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     # Calculate rolling standard deviation (consistency metric)
     df_sorted = df.sort("race_num")
@@ -537,7 +592,7 @@ async def consistency_score(request: ChartRequest):
 @app.post("/charts/accuracy-by-rank")
 async def accuracy_by_rank(request: ChartRequest):
     """Generate average accuracy by rank chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Calculate average accuracy by rank with more stats
@@ -601,7 +656,7 @@ async def accuracy_by_rank(request: ChartRequest):
 @app.post("/charts/cumulative-accuracy")
 async def cumulative_accuracy(request: ChartRequest):
     """Generate cumulative average accuracy over time chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Sort by race number and calculate cumulative accuracy
@@ -642,7 +697,7 @@ async def cumulative_accuracy(request: ChartRequest):
 @app.post("/charts/wpm-by-rank-boxplot")
 async def wmp_by_rank_boxplot(request: ChartRequest):
     """Generate outlier analysis: WPM by rank box plot"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         df_pandas = df.to_pandas()
@@ -677,7 +732,7 @@ async def wmp_by_rank_boxplot(request: ChartRequest):
 @app.post("/charts/racers-impact")
 async def racers_impact(request: ChartRequest):
     """Generate impact of number of racers on average WPM chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Calculate average WPM by number of racers
@@ -719,7 +774,7 @@ async def racers_impact(request: ChartRequest):
 @app.post("/charts/frequent-texts-improvement")
 async def frequent_texts_improvement(request: ChartRequest):
     """Generate WPM improvement over time for frequent texts"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Get top 5 most frequent texts
@@ -806,7 +861,7 @@ async def frequent_texts_improvement(request: ChartRequest):
 @app.post("/charts/top-texts-distribution")
 async def top_texts_distribution(request: ChartRequest):
     """Generate WPM distribution for top 10 texts"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Get top 10 most frequent texts
@@ -874,7 +929,7 @@ async def top_texts_distribution(request: ChartRequest):
 @app.post("/charts/win-rate-after-win")
 async def win_rate_after_win(request: ChartRequest):
     """Generate win rate after previous win chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Sort by race number and create previous win column
@@ -924,7 +979,7 @@ async def win_rate_after_win(request: ChartRequest):
 @app.post("/charts/fastest-slowest-races")
 async def fastest_slowest_races(request: ChartRequest):
     """Generate top 5 fastest and slowest races chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Get top 5 fastest and slowest races
@@ -982,7 +1037,7 @@ async def fastest_slowest_races(request: ChartRequest):
 @app.post("/charts/time-between-races")
 async def time_between_races(request: ChartRequest):
     """Generate time between races and performance chart"""
-    df = process_csv_data(request.csv_data)
+    df = get_or_process_dataframe(request.csv_data)
     
     try:
         # Sort by datetime and calculate time differences

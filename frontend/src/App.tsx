@@ -29,9 +29,29 @@ function App() {
   };
 
   const handleFileUpload = useCallback(async (file: File) => {
-    const csvData = await file.text();
+    // For large files, use streaming approach
+    let csvData: string;
+    
+    if (file.size > 500_000) { // 500KB threshold
+      // Stream large files in chunks to avoid blocking UI
+      csvData = await streamFileRead(file);
+    } else {
+      csvData = await file.text();
+    }
+    
     await processCSVData(csvData, 'upload');
   }, []);
+
+  const streamFileRead = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve(e.target?.result as string);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+  };
 
   const handleSampleData = useCallback(async () => {
     try {

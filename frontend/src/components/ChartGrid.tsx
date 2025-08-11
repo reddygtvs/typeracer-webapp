@@ -232,25 +232,12 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
   }, [chartData, hasTriggeredLoad]);
 
     return (
-      <div ref={chartRef} className="flex flex-col lg:flex-row gap-6">
+      <div ref={chartRef} className="flex flex-col lg:flex-row gap-6 -mx-3 sm:mx-0">
         {/* Chart Box - 50% width on desktop */}
-        <div className="w-full lg:w-1/2 bg-bg-primary rounded-lg border border-border-default overflow-hidden hover:border-border-hover transition-all duration-200">
-          {/* Header */}
-          <div className="px-6 py-4 bg-hover-bg border-b border-border-default">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-bg-primary border border-border-default rounded-lg">
-                <Icon className="h-5 w-5 text-spotify" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-text-primary text-glow-white">{config.title}</h3>
-                <p className="text-sm text-text-secondary">{config.description}</p>
-              </div>
-            </div>
-          </div>
-          
+        <div className="w-full lg:w-1/2 overflow-hidden">
           {/* Chart Section */}
-          <div className="p-3 sm:p-6">
-            <div className="w-full" style={{ height: width < 640 ? '220px' : width < 1024 ? '280px' : '320px' }}>
+          <div className="pt-3 px-1 pb-0.5 sm:pt-4 sm:px-2 sm:pb-1 border border-border-default">
+            <div className="w-full" style={{ height: width < 640 ? '260px' : width < 1024 ? '340px' : '400px' }}>
               {!chartData && !isLoading && !error && (
                 <div className="h-full flex items-center justify-center">
                   <div className="flex flex-col items-center">
@@ -289,7 +276,7 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
                   layout={{
                     ...chartData.layout,
                     autosize: true,
-                    height: width < 640 ? 200 : width < 1024 ? 260 : 300,
+                    height: width < 640 ? 240 : width < 1024 ? 320 : 380,
                     margin: { 
                       l: width < 640 ? 40 : 50,
                       r: width < 640 ? 30 : 40,
@@ -357,13 +344,19 @@ const ChartGrid: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      {chartConfigs.map((config) => (
-        <ChartCard 
-          key={config.id} 
-          config={config} 
-          autoLoad={priorityChartIds.includes(config.id)}
-        />
+    <div className="space-y-12">
+      {chartConfigs.map((config, index) => (
+        <div key={config.id}>
+          <ChartCard 
+            config={config} 
+            autoLoad={priorityChartIds.includes(config.id)}
+          />
+          {index < chartConfigs.length - 1 && (
+            <div className="flex justify-center mt-12">
+              <div className="w-2/3 border-t-2 border-gray-400"></div>
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );

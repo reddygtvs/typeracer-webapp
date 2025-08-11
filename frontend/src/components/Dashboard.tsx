@@ -14,7 +14,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'numeric',
       day: 'numeric'
     });
   };
@@ -63,8 +63,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       </div>
 
       {/* Charts */}
-      <div className="bg-bg-primary rounded-lg border border-border-default p-6">
-        <div className="mb-6">
+      <div className="py-8">
+        <div className="mb-12">
           <h2 className="text-xl font-semibold text-text-primary text-glow-white">Performance Analytics</h2>
           <p className="text-text-secondary text-sm mt-1">
             Interactive visualizations of your typing performance over time

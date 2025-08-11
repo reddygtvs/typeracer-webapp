@@ -1,46 +1,29 @@
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileText, AlertCircle, Database } from 'lucide-react';
-import { uploadData, useSampleData } from '../utils/api';
-import { RaceData } from '../types';
 
 interface FileUploadProps {
-  onUpload: (data: RaceData) => void;
+  onFileUpload: (file: File) => Promise<void>;
+  onSampleData: () => Promise<void>;
   loading: boolean;
-  setLoading: (loading: boolean) => void;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onUpload, loading, setLoading }) => {
-  const [error, setError] = React.useState<string | null>(null);
-
+const FileUpload: React.FC<FileUploadProps> = ({
+  onFileUpload,
+  onSampleData,
+  loading
+}) => {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (!file) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await uploadData(file);
-      onUpload(response);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to upload file');
-      setLoading(false);
+    if (file) {
+      await onFileUpload(file);
     }
-  }, [onUpload, setLoading]);
+  }, [onFileUpload]);
 
-  const handleUseSampleData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await useSampleData();
-      onUpload(response);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load sample data');
-      setLoading(false);
-    }
-  }, [onUpload, setLoading]);
+  // Update the sample data button handler:
+  const handleSampleData = async () => {
+    await onSampleData();
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -87,17 +70,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, loading, setLoading }
         )}
       </div>
 
-      {error && (
-        <div className="mt-4 p-4 bg-red-900/20 border border-red-700/30 rounded-md">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-400" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-red-300">Upload failed</p>
-              <p className="text-sm text-red-400 mt-1">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="mt-6">
         <div className="relative">
@@ -111,7 +83,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, loading, setLoading }
 
         <div className="mt-6">
           <button
-            onClick={handleUseSampleData}
+            onClick={handleSampleData}
             disabled={loading}
             className={`w-full flex items-center justify-center px-4 py-3 border border-border-default rounded-md bg-transparent text-sm font-medium text-text-secondary hover:bg-hover-bg hover:border-border-hover hover:text-text-accent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-spotify focus:ring-offset-2 focus:ring-offset-black ${
               loading ? 'opacity-50 cursor-not-allowed' : ''

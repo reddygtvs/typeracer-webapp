@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import polars as pl
@@ -12,143 +12,85 @@ from datetime import datetime
 from typing import Dict, Any
 import io
 from insights import calculate_insights_with_fallback
+from models import ChartRequest, StatsResponse, ChartResponse
+from config import settings
 
-app = FastAPI(title="TypeRacer Analytics API", version="1.0.0")
+app = FastAPI(title="TypeRacer Analytics API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite dev server
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Global variable to store the dataframe
-df_global: pl.DataFrame = None
 
 def process_race_data(df: pl.DataFrame) -> pl.DataFrame:
-    """Process and clean the race data with Polars"""
-    return df.with_columns([
-        # Rename columns
+    """Process and clean the race data with Polars - FIXED VERSION"""
+    
+    # Parse datetime once
+    df = df.with_columns([
+        pl.col("Date/Time (UTC)").str.to_datetime("%Y-%m-%d %H:%M:%S").alias("datetime_utc")
+    ])
+    
+    # Rename columns properly (select, not alias to avoid duplication)
+    df = df.select([
         pl.col("Race #").alias("race_num"),
         pl.col("WPM").alias("wpm"),
         pl.col("Accuracy").alias("accuracy"),
         pl.col("Rank").alias("rank"),
         pl.col("# Racers").alias("num_racers"),
         pl.col("Text ID").alias("text_id"),
-        pl.col("Date/Time (UTC)").alias("datetime_utc")
-    ]).with_columns([
-        # Parse datetime
-        pl.col("datetime_utc").str.to_datetime("%Y-%m-%d %H:%M:%S").alias("datetime_utc"),
-        # Create additional time columns
-        pl.col("datetime_utc").str.to_datetime("%Y-%m-%d %H:%M:%S").dt.truncate("1mo").alias("year_month"),
-        pl.col("datetime_utc").str.to_datetime("%Y-%m-%d %H:%M:%S").dt.date().alias("date"),
-        pl.col("datetime_utc").str.to_datetime("%Y-%m-%d %H:%M:%S").dt.hour().alias("hour"),
-        pl.col("datetime_utc").str.to_datetime("%Y-%m-%d %H:%M:%S").dt.weekday().alias("day_of_week"),
-    ]).with_columns([
+        pl.col("datetime_utc"),
+        # Create time columns from already parsed datetime
+        pl.col("datetime_utc").dt.truncate("1mo").alias("year_month"),
+        pl.col("datetime_utc").dt.date().alias("date"),
+        pl.col("datetime_utc").dt.hour().alias("hour"),
+        pl.col("datetime_utc").dt.weekday().alias("day_of_week"),
         # Create win column
-        (pl.col("rank") == 1).cast(pl.Int32).alias("win")
+        (pl.col("Rank") == 1).cast(pl.Int32).alias("win")
     ]).sort("race_num")
+    
+    return df
 
-@app.post("/upload-data")
-async def upload_data(file: UploadFile = File(...)):
-    """Upload and process CSV data"""
-    global df_global
-    
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="File must be a CSV")
-    
+def process_csv_data(csv_data: str) -> pl.DataFrame:
+    """Process CSV data from string"""
     try:
-        # Read CSV data
-        content = await file.read()
-        df = pl.read_csv(io.StringIO(content.decode('utf-8')))
-        
-        # Process the data
-        df_global = process_race_data(df)
-        
-        # Return basic stats
-        avg_accuracy = df_global["accuracy"].mean()
-        stats = {
-            "total_races": df_global.height,
-            "avg_wpm": float(df_global["wpm"].mean()),
-            "best_wpm": float(df_global["wpm"].max()),
-            "total_wins": int(df_global["win"].sum()),
-            "avg_accuracy": float(avg_accuracy) if avg_accuracy is not None else 0.0,
-            "date_range": {
-                "start": str(df_global["datetime_utc"].min()),
-                "end": str(df_global["datetime_utc"].max())
-            }
-        }
-        
-        return {"message": "Data processed successfully", "stats": stats}
-        
+        df = pl.read_csv(io.StringIO(csv_data))
+        return process_race_data(df)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing data: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Invalid CSV data: {str(e)}")
 
-@app.post("/use-sample-data")
-async def use_sample_data():
-    """Load and process sample race data"""
-    global df_global
-    
-    try:
-        # Read sample CSV data
-        df = pl.read_csv("race_data.csv")
-        
-        # Process the data
-        df_global = process_race_data(df)
-        
-        # Return basic stats
-        avg_accuracy = df_global["accuracy"].mean()
-        stats = {
-            "total_races": df_global.height,
-            "avg_wpm": float(df_global["wpm"].mean()),
-            "best_wpm": float(df_global["wpm"].max()),
-            "total_wins": int(df_global["win"].sum()),
-            "avg_accuracy": float(avg_accuracy) if avg_accuracy is not None else 0.0,
-            "date_range": {
-                "start": str(df_global["datetime_utc"].min()),
-                "end": str(df_global["datetime_utc"].max())
-            }
-        }
-        
-        return {"message": "Sample data loaded successfully", "stats": stats}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading sample data: {str(e)}")
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.utcnow()}
 
-@app.get("/stats")
-async def get_stats():
-    """Get basic statistics"""
-    global df_global
+@app.post("/stats")
+async def get_stats(request: ChartRequest):
+    """Get basic statistics from CSV data"""
+    df = process_csv_data(request.csv_data)
     
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
-    
-    avg_accuracy = df_global["accuracy"].mean()
-    stats = {
-        "total_races": df_global.height,
-        "avg_wpm": float(df_global["wpm"].mean()),
-        "best_wpm": float(df_global["wpm"].max()),
-        "total_wins": int(df_global["win"].sum()),
+    avg_accuracy = df["accuracy"].mean()
+    return {
+        "total_races": df.height,
+        "avg_wpm": float(df["wpm"].mean()),
+        "best_wpm": float(df["wpm"].max()),
+        "total_wins": int(df["win"].sum()),
         "avg_accuracy": float(avg_accuracy) if avg_accuracy is not None else 0.0,
         "date_range": {
-            "start": str(df_global["datetime_utc"].min()),
-            "end": str(df_global["datetime_utc"].max())
+            "start": str(df["datetime_utc"].min()),
+            "end": str(df["datetime_utc"].max())
         }
     }
-    
-    return stats
 
-@app.get("/charts/wpm-distribution")
-async def wpm_distribution():
+@app.post("/charts/wpm-distribution")
+async def wmp_distribution(request: ChartRequest):
     """Generate WPM distribution chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Convert to pandas for plotly compatibility
-    df_pandas = df_global.to_pandas()
+    df_pandas = df.to_pandas()
     
     # Calculate key statistics
     mean_wpm = df_pandas["wpm"].mean()
@@ -210,7 +152,7 @@ async def wpm_distribution():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "wpm-distribution")
+    insights_data = calculate_insights_with_fallback(df, "wmp-distribution")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -218,16 +160,13 @@ async def wpm_distribution():
     
     return chart_data
 
-@app.get("/charts/performance-over-time")
-async def performance_over_time():
+@app.post("/charts/performance-over-time")
+async def performance_over_time(request: ChartRequest):
     """Generate performance over time chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Monthly average WPM
-    monthly_avg = df_global.group_by("year_month").agg([
+    monthly_avg = df.group_by("year_month").agg([
         pl.col("wpm").mean().alias("avg_wpm")
     ]).sort("year_month")
     
@@ -250,7 +189,7 @@ async def performance_over_time():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "performance-over-time")
+    insights_data = calculate_insights_with_fallback(df, "performance-over-time")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -258,16 +197,13 @@ async def performance_over_time():
     
     return chart_data
 
-@app.get("/charts/rolling-average")
-async def rolling_average():
+@app.post("/charts/rolling-average")
+async def rolling_average(request: ChartRequest):
     """Generate rolling average chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Calculate rolling average
-    df_with_rolling = df_global.with_columns([
+    df_with_rolling = df.with_columns([
         pl.col("wpm").rolling_mean(window_size=100).alias("rolling_avg_wpm")
     ])
     
@@ -289,7 +225,7 @@ async def rolling_average():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "rolling-average")
+    insights_data = calculate_insights_with_fallback(df, "rolling-average")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -297,16 +233,13 @@ async def rolling_average():
     
     return chart_data
 
-@app.get("/charts/rank-distribution")
-async def rank_distribution():
+@app.post("/charts/rank-distribution")
+async def rank_distribution(request: ChartRequest):
     """Generate rank distribution chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Calculate rank distribution
-    rank_dist = df_global.group_by("rank").agg([
+    rank_dist = df.group_by("rank").agg([
         pl.count().alias("count")
     ]).with_columns([
         (pl.col("count") / pl.col("count").sum() * 100).alias("percentage")
@@ -332,7 +265,7 @@ async def rank_distribution():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "rank-distribution")
+    insights_data = calculate_insights_with_fallback(df, "rank-distribution")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -340,16 +273,13 @@ async def rank_distribution():
     
     return chart_data
 
-@app.get("/charts/hourly-performance")
-async def hourly_performance():
+@app.post("/charts/hourly-performance")
+async def hourly_performance(request: ChartRequest):
     """Generate hourly performance chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Calculate hourly average
-    hourly_avg = df_global.group_by("hour").agg([
+    hourly_avg = df.group_by("hour").agg([
         pl.col("wpm").mean().alias("avg_wpm")
     ]).sort("hour")
     
@@ -373,7 +303,7 @@ async def hourly_performance():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "hourly-performance")
+    insights_data = calculate_insights_with_fallback(df, "hourly-performance")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -381,15 +311,12 @@ async def hourly_performance():
     
     return chart_data
 
-@app.get("/charts/accuracy-distribution")
-async def accuracy_distribution():
+@app.post("/charts/accuracy-distribution")
+async def accuracy_distribution(request: ChartRequest):
     """Generate accuracy distribution chart"""
-    global df_global
+    df = process_csv_data(request.csv_data)
     
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
-    
-    df_pandas = df_global.to_pandas()
+    df_pandas = df.to_pandas()
     
     fig = px.histogram(
         df_pandas, 
@@ -407,7 +334,7 @@ async def accuracy_distribution():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "accuracy-distribution")
+    insights_data = calculate_insights_with_fallback(df, "accuracy-distribution")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -415,16 +342,13 @@ async def accuracy_distribution():
     
     return chart_data
 
-@app.get("/charts/daily-performance")
-async def daily_performance():
+@app.post("/charts/daily-performance")
+async def daily_performance(request: ChartRequest):
     """Generate daily performance over time chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Daily average WPM
-    daily_avg = df_global.group_by("date").agg([
+    daily_avg = df.group_by("date").agg([
         pl.col("wpm").mean().alias("avg_wpm")
     ]).sort("date")
     
@@ -446,7 +370,7 @@ async def daily_performance():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "daily-performance")
+    insights_data = calculate_insights_with_fallback(df, "daily-performance")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -454,15 +378,12 @@ async def daily_performance():
     
     return chart_data
 
-@app.get("/charts/wpm-vs-accuracy")
-async def wpm_vs_accuracy():
+@app.post("/charts/wpm-vs-accuracy")
+async def wpm_vs_accuracy(request: ChartRequest):
     """Generate WPM vs Accuracy scatter plot"""
-    global df_global
+    df = process_csv_data(request.csv_data)
     
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
-    
-    df_pandas = df_global.to_pandas()
+    df_pandas = df.to_pandas()
     
     fig = px.scatter(
         df_pandas,
@@ -480,7 +401,7 @@ async def wpm_vs_accuracy():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "wpm-vs-accuracy")
+    insights_data = calculate_insights_with_fallback(df, "wpm-vs-accuracy")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -488,17 +409,14 @@ async def wpm_vs_accuracy():
     
     return chart_data
 
-@app.get("/charts/win-rate-monthly")
-async def win_rate_monthly():
+@app.post("/charts/win-rate-monthly")
+async def win_rate_monthly(request: ChartRequest):
     """Generate monthly win rate chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Monthly win rate
-        monthly_wins = df_global.group_by("year_month").agg([
+        monthly_wins = df.group_by("year_month").agg([
             pl.col("win").mean().alias("win_rate")
         ]).sort("year_month")
         
@@ -520,7 +438,7 @@ async def win_rate_monthly():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "win-rate-monthly")
+        insights_data = calculate_insights_with_fallback(df, "win-rate-monthly")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -530,19 +448,16 @@ async def win_rate_monthly():
         
     except Exception as e:
         print(f"Error in win-rate-monthly endpoint: {str(e)}")
-        print(f"DataFrame columns: {df_global.columns if df_global is not None else 'No DataFrame'}")
+        print(f"DataFrame columns: {df.columns if df is not None else 'No DataFrame'}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/top-texts")
-async def top_texts():
+@app.post("/charts/top-texts")
+async def top_texts(request: ChartRequest):
     """Generate top vs bottom texts performance chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Calculate average WPM by text
-    text_wpm = df_global.group_by("text_id").agg([
+    text_wpm = df.group_by("text_id").agg([
         pl.col("wpm").mean().alias("avg_wpm"),
         pl.count().alias("race_count")
     ]).filter(pl.col("race_count") >= 5)  # Only texts with 5+ races
@@ -574,7 +489,7 @@ async def top_texts():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "top-texts")
+    insights_data = calculate_insights_with_fallback(df, "top-texts")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -582,16 +497,13 @@ async def top_texts():
     
     return chart_data
 
-@app.get("/charts/consistency-score")
-async def consistency_score():
+@app.post("/charts/consistency-score")
+async def consistency_score(request: ChartRequest):
     """Generate consistency score over time chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     # Calculate rolling standard deviation (consistency metric)
-    df_sorted = df_global.sort("race_num")
+    df_sorted = df.sort("race_num")
     df_with_rolling = df_sorted.with_columns([
         pl.col("wpm").rolling_std(window_size=30).alias("rolling_std_wpm")
     ])
@@ -614,7 +526,7 @@ async def consistency_score():
     )
     
     # Calculate insights
-    insights_data = calculate_insights_with_fallback(df_global, "consistency-score")
+    insights_data = calculate_insights_with_fallback(df, "consistency-score")
     
     # Return chart data with insights
     chart_data = json.loads(fig.to_json())
@@ -622,17 +534,14 @@ async def consistency_score():
     
     return chart_data
 
-@app.get("/charts/accuracy-by-rank")
-async def accuracy_by_rank():
+@app.post("/charts/accuracy-by-rank")
+async def accuracy_by_rank(request: ChartRequest):
     """Generate average accuracy by rank chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Calculate average accuracy by rank with more stats
-        rank_accuracy = df_global.group_by("rank").agg([
+        rank_accuracy = df.group_by("rank").agg([
             pl.col("accuracy").mean().alias("avg_accuracy"),
             pl.col("accuracy").count().alias("count"),
             pl.col("accuracy").std().alias("std_accuracy")
@@ -677,7 +586,7 @@ async def accuracy_by_rank():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "accuracy-by-rank")
+        insights_data = calculate_insights_with_fallback(df, "accuracy-by-rank")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -689,17 +598,14 @@ async def accuracy_by_rank():
         print(f"Error in accuracy-by-rank endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/cumulative-accuracy")
-async def cumulative_accuracy():
+@app.post("/charts/cumulative-accuracy")
+async def cumulative_accuracy(request: ChartRequest):
     """Generate cumulative average accuracy over time chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Sort by race number and calculate cumulative accuracy
-        df_sorted = df_global.sort("race_num")
+        df_sorted = df.sort("race_num")
         
         # Convert to pandas for cumulative calculation
         df_pandas = df_sorted.to_pandas()
@@ -721,7 +627,7 @@ async def cumulative_accuracy():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "cumulative-accuracy")
+        insights_data = calculate_insights_with_fallback(df, "cumulative-accuracy")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -733,16 +639,13 @@ async def cumulative_accuracy():
         print(f"Error in cumulative-accuracy endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/wpm-by-rank-boxplot")
-async def wmp_by_rank_boxplot():
+@app.post("/charts/wpm-by-rank-boxplot")
+async def wmp_by_rank_boxplot(request: ChartRequest):
     """Generate outlier analysis: WPM by rank box plot"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
-        df_pandas = df_global.to_pandas()
+        df_pandas = df.to_pandas()
         
         fig = px.box(
             df_pandas,
@@ -759,7 +662,7 @@ async def wmp_by_rank_boxplot():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "wpm-by-rank-boxplot")
+        insights_data = calculate_insights_with_fallback(df, "wpm-by-rank-boxplot")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -771,17 +674,14 @@ async def wmp_by_rank_boxplot():
         print(f"Error in wpm-by-rank-boxplot endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/racers-impact")
-async def racers_impact():
+@app.post("/charts/racers-impact")
+async def racers_impact(request: ChartRequest):
     """Generate impact of number of racers on average WPM chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Calculate average WPM by number of racers
-        racers_wpm = df_global.group_by("num_racers").agg([
+        racers_wpm = df.group_by("num_racers").agg([
             pl.col("wpm").mean().alias("avg_wpm")
         ]).sort("num_racers")
         
@@ -804,7 +704,7 @@ async def racers_impact():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "racers-impact")
+        insights_data = calculate_insights_with_fallback(df, "racers-impact")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -816,24 +716,21 @@ async def racers_impact():
         print(f"Error in racers-impact endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/frequent-texts-improvement")
-async def frequent_texts_improvement():
+@app.post("/charts/frequent-texts-improvement")
+async def frequent_texts_improvement(request: ChartRequest):
     """Generate WPM improvement over time for frequent texts"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Get top 5 most frequent texts
-        top_texts = df_global.group_by("text_id").agg([
+        top_texts = df.group_by("text_id").agg([
             pl.count().alias("race_count")
         ]).top_k(5, by="race_count")
         
         top_text_ids = top_texts.select("text_id").to_pandas()["text_id"].tolist()
         
         # Filter and process data for rolling averages
-        frequent_texts_df = df_global.filter(
+        frequent_texts_df = df.filter(
             pl.col("text_id").is_in(top_text_ids)
         ).sort("datetime_utc").to_pandas()
         
@@ -894,7 +791,7 @@ async def frequent_texts_improvement():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "frequent-texts-improvement")
+        insights_data = calculate_insights_with_fallback(df, "frequent-texts-improvement")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -906,24 +803,21 @@ async def frequent_texts_improvement():
         print(f"Error in frequent-texts-improvement endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/top-texts-distribution")
-async def top_texts_distribution():
+@app.post("/charts/top-texts-distribution")
+async def top_texts_distribution(request: ChartRequest):
     """Generate WPM distribution for top 10 texts"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Get top 10 most frequent texts
-        top_texts = df_global.group_by("text_id").agg([
+        top_texts = df.group_by("text_id").agg([
             pl.count().alias("race_count")
         ]).top_k(10, by="race_count")
         
         top_text_ids = top_texts.select("text_id").to_pandas()["text_id"].tolist()
         
         # Filter data for these texts
-        top_texts_data = df_global.filter(
+        top_texts_data = df.filter(
             pl.col("text_id").is_in(top_text_ids)
         ).to_pandas()
         
@@ -965,7 +859,7 @@ async def top_texts_distribution():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "top-texts-distribution")
+        insights_data = calculate_insights_with_fallback(df, "top-texts-distribution")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -977,17 +871,14 @@ async def top_texts_distribution():
         print(f"Error in top-texts-distribution endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/win-rate-after-win")
-async def win_rate_after_win():
+@app.post("/charts/win-rate-after-win")
+async def win_rate_after_win(request: ChartRequest):
     """Generate win rate after previous win chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Sort by race number and create previous win column
-        df_sorted = df_global.sort("race_num")
+        df_sorted = df.sort("race_num")
         df_pandas = df_sorted.to_pandas()
         
         # Create previous win column
@@ -1018,7 +909,7 @@ async def win_rate_after_win():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "win-rate-after-win")
+        insights_data = calculate_insights_with_fallback(df, "win-rate-after-win")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -1030,17 +921,14 @@ async def win_rate_after_win():
         print(f"Error in win-rate-after-win endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/fastest-slowest-races")
-async def fastest_slowest_races():
+@app.post("/charts/fastest-slowest-races")
+async def fastest_slowest_races(request: ChartRequest):
     """Generate top 5 fastest and slowest races chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Get top 5 fastest and slowest races
-        df_pandas = df_global.to_pandas()
+        df_pandas = df.to_pandas()
         
         fastest_5 = df_pandas.nlargest(5, 'wpm')
         slowest_5 = df_pandas.nsmallest(5, 'wpm')
@@ -1079,7 +967,7 @@ async def fastest_slowest_races():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "fastest-slowest-races")
+        insights_data = calculate_insights_with_fallback(df, "fastest-slowest-races")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())
@@ -1091,17 +979,14 @@ async def fastest_slowest_races():
         print(f"Error in fastest-slowest-races endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
 
-@app.get("/charts/time-between-races")
-async def time_between_races():
+@app.post("/charts/time-between-races")
+async def time_between_races(request: ChartRequest):
     """Generate time between races and performance chart"""
-    global df_global
-    
-    if df_global is None:
-        raise HTTPException(status_code=400, detail="No data uploaded")
+    df = process_csv_data(request.csv_data)
     
     try:
         # Sort by datetime and calculate time differences
-        df_sorted = df_global.sort("datetime_utc")
+        df_sorted = df.sort("datetime_utc")
         df_pandas = df_sorted.to_pandas()
         
         # Calculate time difference in hours
@@ -1155,7 +1040,7 @@ async def time_between_races():
         )
         
         # Calculate insights
-        insights_data = calculate_insights_with_fallback(df_global, "time-between-races")
+        insights_data = calculate_insights_with_fallback(df, "time-between-races")
         
         # Return chart data with insights
         chart_data = json.loads(fig.to_json())

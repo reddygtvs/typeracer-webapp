@@ -71,7 +71,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
           </p>
         </div>
         
-        <ChartGrid />
+        <ChartGrid csvData={data.csvData} />
       </div>
     </div>
   );

@@ -150,10 +150,11 @@ const chartConfigs = [
 ];
 
 // Independent ChartCard component with its own state
-const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }> = ({ 
-  config, 
-  autoLoad = false 
-}) => {
+const ChartCard: React.FC<{
+  config: typeof chartConfigs[0];
+  csvData: string;
+  autoLoad?: boolean
+}> = ({ config, csvData, autoLoad = false }) => {
   const [chartData, setChartData] = React.useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string>('');
@@ -179,7 +180,7 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
     setError('');
     
     try {
-      const data = await getChart(config.id);
+      const data = await getChart(config.id, csvData);
       setChartData(data);
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to load chart');
@@ -332,7 +333,7 @@ const ChartCard: React.FC<{ config: typeof chartConfigs[0]; autoLoad?: boolean }
     );
 };
 
-const ChartGrid: React.FC = () => {
+const ChartGrid: React.FC<{ csvData: string }> = ({ csvData }) => {
   // Priority charts for immediate loading (highest hiring impact)
   const priorityChartIds = [
     'wpm-distribution',      // Shows skill level distribution
@@ -347,8 +348,9 @@ const ChartGrid: React.FC = () => {
     <div className="space-y-12">
       {chartConfigs.map((config, index) => (
         <div key={config.id}>
-          <ChartCard 
-            config={config} 
+          <ChartCard
+            config={config}
+            csvData={csvData}
             autoLoad={priorityChartIds.includes(config.id)}
           />
           {index < chartConfigs.length - 1 && (

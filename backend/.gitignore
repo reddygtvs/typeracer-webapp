@@ -76,3 +76,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Benchmark files
+benchmark_results_*.json
+full_dashboard_benchmark_*.json

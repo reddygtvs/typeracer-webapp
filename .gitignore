@@ -28,3 +28,6 @@ Thumbs.db
 
 # Implementation docs
 CHART_INSIGHTS_IMPLEMENTATION.md
+
+# Benchmark results
+benchmark_results_*.json

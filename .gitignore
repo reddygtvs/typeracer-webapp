@@ -31,3 +31,7 @@ CHART_INSIGHTS_IMPLEMENTATION.md
 
 # Benchmark results
 benchmark_results_*.json
+
+# Build artifacts
+backend/static/
+test_api_url.html

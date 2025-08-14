@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import polars as pl
 import pandas as pd
 import plotly.express as px
@@ -26,6 +27,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# API routes will be defined after this point
 
 # In-memory DataFrame cache
 _dataframe_cache: Dict[str, pl.DataFrame] = {}
@@ -1106,6 +1109,9 @@ async def time_between_races(request: ChartRequest):
     except Exception as e:
         print(f"Error in time-between-races endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating chart: {str(e)}")
+
+# Mount static files for frontend (must be last to not interfere with API routes)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn

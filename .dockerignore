@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.docker
+.dockerignore
+**/__pycache__
+**/*.pyc
+**/node_modules
+frontend/dist
+backend/benchmark_results_*.json
+backend/full_dashboard_benchmark_*.json

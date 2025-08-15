@@ -18,16 +18,18 @@ const iconColors = {
 
 const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon: Icon, description, color }) => {
   return (
-    <div className="flex items-center justify-between p-6 bg-transparent">
-      <div className="flex-1">
-        <p className="text-premium-sm font-medium text-white/60 mb-1">{title}</p>
-        <p className="text-premium-3xl font-bold text-white mb-1" style={{ letterSpacing: "-0.02em" }}>
-          {value}
-        </p>
-        <p className="text-premium-xs text-white/50">{description}</p>
-      </div>
-      <div className="ml-6">
-        <Icon className={`h-8 w-8 ${iconColors[color]} opacity-80`} strokeWidth={1.5} />
+    <div className="inline-block p-6 bg-transparent border border-white/10 rounded-xl">
+      <div className="flex items-center justify-between">
+        <div className="mr-6">
+          <p className="text-premium-sm font-medium text-white/60 mb-1">{title}</p>
+          <p className="text-premium-3xl font-bold text-white mb-1" style={{ letterSpacing: "-0.02em" }}>
+            {value}
+          </p>
+          <p className="text-premium-xs text-white/50">{description}</p>
+        </div>
+        <div>
+          <Icon className={`h-8 w-8 ${iconColors[color]} opacity-80`} strokeWidth={1.5} />
+        </div>
       </div>
     </div>
   );

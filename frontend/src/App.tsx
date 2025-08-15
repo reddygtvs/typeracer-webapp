@@ -96,48 +96,75 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-premium">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-5 pt-3 pb-3">
-          <div className="flex justify-between items-center">
-            <h1 
-              className="text-sm sm:text-xl md:text-2xl font-bold text-white uppercase tracking-widest m-0 text-glow-white cursor-pointer hover:text-spotify transition-colors duration-200"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
-              TYPERACER ANALYTICS<span className="bounce-favicon">.</span>
-            </h1>
+      <nav className="relative z-10 px-6 py-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div
+                className="w-7 h-7 rounded-md bg-gradient-to-br from-green-400/90 to-green-500/90 flex items-center justify-center backdrop-blur-sm"
+                style={{
+                  boxShadow:
+                    "0 1px 3px rgba(57, 255, 20, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                }}
+              >
+                <BarChart3 className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h1
+                  className="text-lg font-light text-white cursor-pointer"
+                  style={{ letterSpacing: "-0.01em" }}
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                >
+                  <span className="font-medium text-gradient-green">TypeRacer</span>
+                  <span className="text-white/90 font-light">Analytics</span>
+                </h1>
+              </div>
+            </div>
             
             {data && (
               <button
                 onClick={handleReset}
-                className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 border border-border-default rounded-md text-xs sm:text-sm font-medium text-text-secondary bg-transparent hover:bg-hover-bg hover:border-border-hover hover:text-text-accent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-spotify focus:ring-offset-2 focus:ring-offset-black"
+                className="glass px-4 py-2.5 rounded-lg hover:border-green-400/20 transition-all duration-200 group"
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload New Data
+                <div className="flex items-center space-x-2">
+                  <Upload className="h-4 w-4 text-white/70 group-hover:text-white transition-colors" />
+                  <span
+                    className="text-sm text-white/70 font-light group-hover:text-white transition-colors"
+                    style={{ letterSpacing: "-0.01em" }}
+                  >
+                    Upload New Data
+                  </span>
+                </div>
               </button>
             )}
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Main Content */}
-      <main className="pt-20 max-w-5xl mx-auto px-5 py-8">
+      <main className="max-w-6xl mx-auto px-6 pb-20">
         {!data ? (
-          <div className="min-h-[600px] flex flex-col items-center justify-center animate-fade-in">
-            <div className="max-w-md w-full">
-              <div className="text-center mb-8">
-                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-bg-primary mb-4 border border-border-default">
-                  <BarChart3 className="h-8 w-8 text-spotify" />
-                </div>
-                <h2 className="text-2xl font-bold text-text-primary mb-2 text-glow-white">
-                  Welcome to TypeRacer Analytics
-                </h2>
-                <p className="text-text-secondary">
-                  Upload your race data CSV file or try the sample data
-                </p>
-              </div>
-              
+          <div className="text-center mb-16 animate-fade-up">
+            <div className="inline-flex items-center glass px-4 py-2 rounded-lg mb-6">
+              <span className="text-premium-sm font-medium text-green-400 uppercase tracking-wider">
+                Performance Analytics Dashboard
+              </span>
+            </div>
+
+            <h1 className="text-premium-4xl md:text-6xl font-bold text-white mb-6 max-w-4xl mx-auto leading-[1.1]">
+              <span className="text-gradient-green">TypeRacer</span> performance
+              insights and analytics
+            </h1>
+
+            <p className="text-premium-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-12">
+              Upload your race data CSV or explore sample insights to discover
+              <span className="text-green-400 font-medium block">
+                detailed performance metrics and trends
+              </span>
+            </p>
+
+            <div className="max-w-md mx-auto animate-fade-up-delay-1">
               <FileUpload
                 onFileUpload={handleFileUpload}
                 onSampleData={handleSampleData}
@@ -146,9 +173,18 @@ function App() {
             </div>
           </div>
         ) : (
-          <Dashboard data={data} />
+          <div className="animate-fade-up">
+            <Dashboard data={data} />
+          </div>
         )}
       </main>
+
+      {/* Background decorations */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-green-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-green-400/3 rounded-full blur-3xl"></div>
+        <div className="absolute top-3/4 left-1/2 w-64 h-64 bg-green-600/4 rounded-full blur-2xl"></div>
+      </div>
     </div>
   );
 }

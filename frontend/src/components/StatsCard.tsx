@@ -9,20 +9,25 @@ interface StatsCardProps {
   color: 'blue' | 'green' | 'yellow' | 'purple';
 }
 
-const colorVariants = {
-  blue: 'bg-hover-bg text-spotify border-border-default',
-  green: 'bg-hover-bg text-spotify border-border-default',
-  yellow: 'bg-hover-bg text-spotify border-border-default',
-  purple: 'bg-hover-bg text-spotify border-border-default',
+const iconColors = {
+  blue: 'text-blue-400',
+  green: 'text-green-400',
+  yellow: 'text-yellow-400',
+  purple: 'text-purple-400',
 };
 
 const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon: Icon, description, color }) => {
   return (
-    <div className="p-8">
-      <div>
-        <p className="text-lg font-medium text-text-secondary">{title}</p>
-        <p className="text-4xl font-bold text-text-primary mt-4 text-glow-white">{value}</p>
-        <p className="text-sm text-text-secondary mt-2">{description}</p>
+    <div className="flex items-center justify-between p-6 bg-transparent">
+      <div className="flex-1">
+        <p className="text-premium-sm font-medium text-white/60 mb-1">{title}</p>
+        <p className="text-premium-3xl font-bold text-white mb-1" style={{ letterSpacing: "-0.02em" }}>
+          {value}
+        </p>
+        <p className="text-premium-xs text-white/50">{description}</p>
+      </div>
+      <div className="ml-6">
+        <Icon className={`h-8 w-8 ${iconColors[color]} opacity-80`} strokeWidth={1.5} />
       </div>
     </div>
   );

@@ -35,73 +35,70 @@ const FileUpload: React.FC<FileUploadProps> = ({
   });
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
       <div
         {...getRootProps()}
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-200 ${
+        className={`glass rounded-xl p-8 text-center cursor-pointer transition-all duration-300 hover-glow-green ${
           isDragActive
-            ? 'border-spotify bg-spotify/5'
-            : 'border-border-default hover:border-border-hover'
-        } ${loading ? 'opacity-50 cursor-not-allowed' : ''} bg-bg-primary`}
+            ? 'border-green-400/40 bg-green-400/5'
+            : 'hover:border-green-400/20'
+        } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input {...getInputProps()} />
         
         {loading ? (
           <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-spotify"></div>
-            <p className="mt-4 text-sm text-text-secondary">Processing your data...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
+            <p className="mt-4 text-premium-sm text-white/70">Processing your data...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-hover-bg border border-border-default">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full glass-strong mb-4">
               {isDragActive ? (
-                <Upload className="h-6 w-6 text-spotify" />
+                <Upload className="h-8 w-8 text-green-400" />
               ) : (
-                <FileText className="h-6 w-6 text-text-secondary" />
+                <FileText className="h-8 w-8 text-white/70" />
               )}
             </div>
-            <p className="mt-4 text-sm font-medium text-text-primary">
+            <h3 className="text-premium-lg font-medium text-white mb-2">
               {isDragActive ? 'Drop your CSV file here' : 'Upload race data CSV'}
-            </p>
-            <p className="mt-1 text-xs text-text-secondary">
+            </h3>
+            <p className="text-premium-sm text-white/60">
               Drag and drop your TypeRacer CSV file, or click to browse
             </p>
           </div>
         )}
       </div>
 
-
-      <div className="mt-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border-default" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-black px-2 text-text-secondary">Or</span>
-          </div>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/10" />
         </div>
-
-        <div className="mt-6">
-          <button
-            onClick={handleSampleData}
-            disabled={loading}
-            className={`w-full flex items-center justify-center px-4 py-3 border border-border-default rounded-md bg-transparent text-sm font-medium text-text-secondary hover:bg-hover-bg hover:border-border-hover hover:text-text-accent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-spotify focus:ring-offset-2 focus:ring-offset-black ${
-              loading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            <Database className="h-4 w-4 mr-2" />
-            Use Sample Data
-          </button>
-          <p className="mt-2 text-xs text-text-secondary text-center">
-            Try the demo with 34,617 sample race records
-          </p>
+        <div className="relative flex justify-center">
+          <span className="bg-black px-4 text-premium-sm text-white/60 uppercase tracking-wider">
+            Or try demo data
+          </span>
         </div>
+      </div>
 
-        <div className="mt-4 text-center">
-          <p className="text-xs text-text-secondary">
-            Expected format: Race #, WPM, Accuracy, Rank, # Racers, Text ID, Date/Time (UTC)
-          </p>
-        </div>
+      <button
+        onClick={handleSampleData}
+        disabled={loading}
+        className={`btn-premium btn-premium-lg btn-green w-full ${
+          loading ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
+      >
+        <Database className="h-5 w-5 mr-3" />
+        Explore Sample Dataset
+      </button>
+      
+      <div className="text-center space-y-2">
+        <p className="text-premium-sm text-green-400/80 font-medium">
+          34,617 sample race records included
+        </p>
+        <p className="text-premium-xs text-white/50">
+          Expected format: Race #, WPM, Accuracy, Rank, # Racers, Text ID, Date/Time (UTC)
+        </p>
       </div>
     </div>
   );

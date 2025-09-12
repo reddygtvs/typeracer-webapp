@@ -20,8 +20,20 @@ pub fn process_csv_data(csv_data: &str) -> PolarsResult<DataFrame> {
             col("Rank").alias("rank"),
             col("# Racers").alias("num_racers"),
             col("Text ID").alias("text_id"),
-            // Parse datetime - simplified for now, we'll improve later
-            col("Date/Time (UTC)").alias("datetime_utc"),
+            // Parse datetime to match Python version - using strptime
+            col("Date/Time (UTC)")
+                .str()
+                .strptime(
+                    DataType::Datetime(TimeUnit::Microseconds, None),
+                    StrptimeOptions {
+                        format: Some("%Y-%m-%d %H:%M:%S".to_string().into()),
+                        strict: false,
+                        exact: true,
+                        ..Default::default()
+                    },
+                    lit("raise")
+                )
+                .alias("datetime_utc"),
         ])
         .with_columns([
             // Create win column (1 if rank == 1, else 0)  

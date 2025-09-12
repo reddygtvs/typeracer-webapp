@@ -170,10 +170,30 @@ async fn stats_handler(
         .try_extract::<f64>()
         .unwrap_or(0.0);
     
-    // Get date range (first and last values)
-    let datetime_col = df.column("datetime_utc").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let start_date = datetime_col.get(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.to_string();
-    let end_date = datetime_col.get(datetime_col.len() - 1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.to_string();
+    // Get date range - format to match Python backend exactly
+    let min_date_df = (*df).clone().lazy()
+        .select([col("datetime_utc").min()])
+        .collect()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let max_date_df = (*df).clone().lazy()
+        .select([col("datetime_utc").max()])
+        .collect()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let start_date = min_date_df.column("datetime_utc")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .get(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .to_string()
+        .trim_matches('"')  // Remove extra quotes
+        .to_string();
+    let end_date = max_date_df.column("datetime_utc")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .get(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .to_string()
+        .trim_matches('"')  // Remove extra quotes
+        .to_string();
     
     let response = crate::models::StatsResponse {
         total_races,

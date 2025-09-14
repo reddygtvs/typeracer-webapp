@@ -38,6 +38,8 @@ pub fn process_csv_data(csv_data: &str) -> PolarsResult<DataFrame> {
         .with_columns([
             // Create win column (1 if rank == 1, else 0)  
             (col("rank").eq(lit(1))).cast(DataType::Int32).alias("win"),
+            // Create year_month column for performance-over-time charts
+            col("datetime_utc").dt().truncate(lit("1mo")).alias("year_month"),
         ])
         .sort(["race_num"], SortMultipleOptions::default())
         .collect()?;

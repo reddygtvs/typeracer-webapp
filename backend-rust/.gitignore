@@ -1,3 +1,25 @@
 /target/
 **/*.rs.bk
 Cargo.lock
+
+# Test files and temporary data
+/tmp/
+*.json
+*.csv
+*.sh
+*.log
+*.backup
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Development utilities
+CLAUDE.md

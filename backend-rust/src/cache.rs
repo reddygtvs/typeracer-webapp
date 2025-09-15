@@ -3,6 +3,7 @@ use polars::prelude::DataFrame;
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
+#[derive(Clone, Debug)]
 pub struct DataCache {
     dataframe_cache: DashMap<String, Arc<DataFrame>>,
     chart_cache: DashMap<String, serde_json::Value>,

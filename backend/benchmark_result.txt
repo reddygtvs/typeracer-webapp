@@ -1,0 +1,178 @@
+🚀 FULL DASHBOARD LOAD BENCHMARK
+============================================================
+✅ Loaded sample data: 1,579,321 characters
+
+1️⃣ Testing sequential load (normal user behavior)...
+
+🔄 SEQUENTIAL LOAD (Normal User Behavior)
+==================================================
+Loading stats...
+  Stats loaded: 0.006s
+Loading chart 1/13: wpm-distribution...
+  ✅ wpm-distribution: 0.356s
+Loading chart 2/13: performance-over-time...
+  ✅ performance-over-time: 0.094s
+Loading chart 3/13: rolling-average...
+  ❌ rolling-average: 0.084s - HTTP 500
+Loading chart 4/13: rank-distribution...
+  ❌ rank-distribution: 0.088s - HTTP 500
+Loading chart 5/13: hourly-performance...
+  ❌ hourly-performance: 0.086s - HTTP 500
+Loading chart 6/13: accuracy-distribution...
+  ✅ accuracy-distribution: 0.099s
+Loading chart 7/13: daily-performance...
+  ❌ daily-performance: 0.087s - HTTP 500
+Loading chart 8/13: win-rate-monthly...
+  ✅ win-rate-monthly: 0.095s
+Loading chart 9/13: top-texts...
+  ❌ top-texts: 0.090s - HTTP 500
+Loading chart 10/13: consistency-score...
+  ❌ consistency-score: 0.084s - HTTP 500
+Loading chart 11/13: accuracy-by-rank...
+  ✅ accuracy-by-rank: 0.085s
+Loading chart 12/13: cumulative-accuracy...
+  ✅ cumulative-accuracy: 0.246s
+Loading chart 13/13: racers-impact...
+  ✅ racers-impact: 0.087s
+
+📊 SEQUENTIAL LOAD RESULTS:
+Stats time: 0.006s
+Charts loaded: 7/13
+Total dashboard time: 1.590s
+Average chart time: 0.152s
+Fastest chart: 0.085s
+Slowest chart: 0.356s
+Failed charts: ['rolling-average', 'rank-distribution', 'hourly-performance', 'daily-performance', 'top-texts', 'consistency-score']
+
+2️⃣ Testing parallel load (aggressive pre-loading)...
+
+⚡ PARALLEL LOAD (Aggressive Pre-loading)
+==================================================
+Loading stats...
+  Stats loaded: 0.005s
+Loading 13 charts in parallel...
+  ❌ rolling-average: 0.105s - HTTP 500
+  ❌ hourly-performance: 0.112s - HTTP 500
+  ✅ performance-over-time: 0.129s
+  ✅ wpm-distribution: 0.150s
+  ❌ consistency-score: 0.122s - HTTP 500
+  ✅ accuracy-distribution: 0.240s
+  ✅ accuracy-by-rank: 0.127s
+  ✅ win-rate-monthly: 0.240s
+  ❌ daily-performance: 0.250s - HTTP 500
+  ❌ rank-distribution: 0.263s - HTTP 500
+  ❌ top-texts: 0.164s - HTTP 500
+  ✅ racers-impact: 0.103s
+  ✅ cumulative-accuracy: 0.300s
+
+📊 PARALLEL LOAD RESULTS:
+Stats time: 0.005s
+Charts loaded: 7/13
+Total dashboard time: 0.456s
+Average chart time: 0.184s
+Fastest chart: 0.103s
+Slowest chart: 0.300s
+Parallelization efficiency: 2.8x
+
+3️⃣ Testing cache effectiveness...
+
+🔥 CACHE WARMING TEST
+==================================================
+🥶 COLD CACHE (First Load):
+
+🔄 SEQUENTIAL LOAD (Normal User Behavior)
+==================================================
+Loading stats...
+  Stats loaded: 0.005s
+Loading chart 1/13: wpm-distribution...
+  ✅ wpm-distribution: 0.102s
+Loading chart 2/13: performance-over-time...
+  ✅ performance-over-time: 0.085s
+Loading chart 3/13: rolling-average...
+  ❌ rolling-average: 0.080s - HTTP 500
+Loading chart 4/13: rank-distribution...
+  ❌ rank-distribution: 0.082s - HTTP 500
+Loading chart 5/13: hourly-performance...
+  ❌ hourly-performance: 0.083s - HTTP 500
+Loading chart 6/13: accuracy-distribution...
+  ✅ accuracy-distribution: 0.097s
+Loading chart 7/13: daily-performance...
+  ❌ daily-performance: 0.082s - HTTP 500
+Loading chart 8/13: win-rate-monthly...
+  ✅ win-rate-monthly: 0.083s
+Loading chart 9/13: top-texts...
+  ❌ top-texts: 0.085s - HTTP 500
+Loading chart 10/13: consistency-score...
+  ❌ consistency-score: 0.081s - HTTP 500
+Loading chart 11/13: accuracy-by-rank...
+  ✅ accuracy-by-rank: 0.081s
+Loading chart 12/13: cumulative-accuracy...
+  ✅ cumulative-accuracy: 0.226s
+Loading chart 13/13: racers-impact...
+  ✅ racers-impact: 0.082s
+
+📊 SEQUENTIAL LOAD RESULTS:
+Stats time: 0.005s
+Charts loaded: 7/13
+Total dashboard time: 1.256s
+Average chart time: 0.108s
+Fastest chart: 0.081s
+Slowest chart: 0.226s
+Failed charts: ['rolling-average', 'rank-distribution', 'hourly-performance', 'daily-performance', 'top-texts', 'consistency-score']
+
+🔥 WARM CACHE (Second Load - Should be much faster!):
+
+🔄 SEQUENTIAL LOAD (Normal User Behavior)
+==================================================
+Loading stats...
+  Stats loaded: 0.005s
+Loading chart 1/13: wpm-distribution...
+  ✅ wpm-distribution: 0.101s
+Loading chart 2/13: performance-over-time...
+  ✅ performance-over-time: 0.083s
+Loading chart 3/13: rolling-average...
+  ❌ rolling-average: 0.080s - HTTP 500
+Loading chart 4/13: rank-distribution...
+  ❌ rank-distribution: 0.082s - HTTP 500
+Loading chart 5/13: hourly-performance...
+  ❌ hourly-performance: 0.084s - HTTP 500
+Loading chart 6/13: accuracy-distribution...
+  ✅ accuracy-distribution: 0.097s
+Loading chart 7/13: daily-performance...
+  ❌ daily-performance: 0.084s - HTTP 500
+Loading chart 8/13: win-rate-monthly...
+  ✅ win-rate-monthly: 0.090s
+Loading chart 9/13: top-texts...
+  ❌ top-texts: 0.085s - HTTP 500
+Loading chart 10/13: consistency-score...
+  ❌ consistency-score: 0.080s - HTTP 500
+Loading chart 11/13: accuracy-by-rank...
+  ✅ accuracy-by-rank: 0.083s
+Loading chart 12/13: cumulative-accuracy...
+  ✅ cumulative-accuracy: 0.233s
+Loading chart 13/13: racers-impact...
+  ✅ racers-impact: 0.089s
+
+📊 SEQUENTIAL LOAD RESULTS:
+Stats time: 0.005s
+Charts loaded: 7/13
+Total dashboard time: 1.277s
+Average chart time: 0.111s
+Fastest chart: 0.083s
+Slowest chart: 0.233s
+Failed charts: ['rolling-average', 'rank-distribution', 'hourly-performance', 'daily-performance', 'top-texts', 'consistency-score']
+
+🚀 CACHE EFFECTIVENESS:
+Cold cache time: 1.256s
+Warm cache time: 1.277s
+Cache speedup: 1.0x faster!
+
+🎯 FINAL PERFORMANCE SUMMARY
+============================================================
+📱 Normal user experience: 1.59s
+⚡ Parallel loading: 0.46s
+🔥 With warm cache: 1.28s
+🚀 Cache speedup: 1.0x
+⚡ Parallel efficiency: 2.8x
+
+📊 Detailed results saved to: full_dashboard_benchmark_1757904824.json

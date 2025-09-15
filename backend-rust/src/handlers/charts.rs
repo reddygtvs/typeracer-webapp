@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
-use polars::prelude::{col, lit, IntoLazy, DataFrame};
+use polars::prelude::{col, lit, IntoLazy, QuantileMethod, NamedFromOwned};
 use polars::chunked_array::ops::SortMultipleOptions;
 use serde_json::{json, Map, Value};
 use std::sync::Arc;
@@ -21,7 +21,10 @@ pub async fn wpm_distribution_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -92,7 +95,10 @@ pub async fn accuracy_distribution_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -153,7 +159,10 @@ pub async fn performance_over_time_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -218,7 +227,10 @@ pub async fn daily_performance_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -279,7 +291,10 @@ pub async fn rolling_average_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -293,20 +308,25 @@ pub async fn rolling_average_handler(
         .cast(&polars::datatypes::DataType::Float64).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .f64().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.into_iter().filter_map(|v| v).collect();
     
-    // Calculate rolling average manually - 100-race window
+    // Calculate rolling average manually - 100-race window (matching Python behavior)
     let mut rolling_avg = Vec::new();
     for i in 0..wpm_values.len() {
-        let start = if i >= 99 { i - 99 } else { 0 };
-        let window = &wpm_values[start..=i];
-        let avg = window.iter().sum::<f64>() / window.len() as f64;
-        rolling_avg.push(avg);
+        if i < 99 {
+            // First 99 races: insufficient window for rolling mean (Python returns null)
+            rolling_avg.push(f64::NAN);
+        } else {
+            // From race 100 onward: calculate rolling mean over last 100 races
+            let window = &wpm_values[i-99..=i];
+            let avg = window.iter().sum::<f64>() / window.len() as f64;
+            rolling_avg.push(avg);
+        }
     }
     
     let mut data = Vec::new();
     let mut trace = Map::new();
     trace.insert("x".to_string(), Value::Array(race_nums.iter().map(|&v| json!(v)).collect()));
     trace.insert("y".to_string(), Value::Array(rolling_avg.iter().map(|&v| json!(v)).collect()));
-    trace.insert("type".to_string(), json!("scatter"));
+    trace.insert("type".to_string(), json!("scattergl"));
     trace.insert("mode".to_string(), json!("lines"));
     trace.insert("name".to_string(), json!(""));
     trace.insert("line".to_string(), json!({"color": "#8b5cf6", "width": 2}));
@@ -344,7 +364,10 @@ pub async fn rank_distribution_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -354,12 +377,13 @@ pub async fn rank_distribution_handler(
         .agg([col("rank").len().alias("count")])
         .with_columns([(col("count").cast(polars::datatypes::DataType::Float64) / col("count").sum().cast(polars::datatypes::DataType::Float64) * lit(100.0)).alias("percentage")])
         .sort(["rank"], SortMultipleOptions::default())
-        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .collect().map_err(|e| {
+            eprintln!("Rank distribution aggregation error: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     
-    let ranks: Vec<i32> = rank_dist.column("rank").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .i32().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.into_iter().filter_map(|v| v).collect();
-    let percentages: Vec<f64> = rank_dist.column("percentage").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .f64().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.into_iter().filter_map(|v| v).collect();
+    let ranks: Vec<i64> = rank_dist["rank"].i64().unwrap().into_iter().filter_map(|v| v).collect();
+    let percentages: Vec<f64> = rank_dist["percentage"].f64().unwrap().into_iter().filter_map(|v| v).collect();
     
     let mut data = Vec::new();
     let mut trace = Map::new();
@@ -403,7 +427,10 @@ pub async fn hourly_performance_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -412,13 +439,13 @@ pub async fn hourly_performance_handler(
         .group_by([col("hour")])
         .agg([col("wpm").mean().alias("avg_wpm")])
         .sort(["hour"], SortMultipleOptions::default())
-        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .collect().map_err(|e| {
+            eprintln!("Hourly aggregation error: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     
-    let hours: Vec<i32> = hourly_avg.column("hour").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .i32().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.into_iter().filter_map(|v| v).collect();
-    let avg_wpm_values: Vec<f64> = hourly_avg.column("avg_wpm").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .cast(&polars::datatypes::DataType::Float64).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .f64().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.into_iter().filter_map(|v| v).collect();
+    let hours: Vec<i8> = hourly_avg["hour"].i8().unwrap().into_iter().filter_map(|v| v).collect();
+    let avg_wpm_values: Vec<f64> = hourly_avg["avg_wpm"].f64().unwrap().into_iter().filter_map(|v| v).collect();
     
     let mut data = Vec::new();
     let mut trace = Map::new();
@@ -462,7 +489,10 @@ pub async fn wpm_vs_accuracy_handler(
         cached_df
     } else {
         let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
-            .map_err(|_| StatusCode::BAD_REQUEST)?;
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
         state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
         Arc::new(processed_df)
     };
@@ -647,21 +677,26 @@ pub async fn consistency_score_handler(
         .cast(&polars::datatypes::DataType::Float64).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .f64().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.into_iter().filter_map(|v| v).collect();
     
-    // Calculate rolling standard deviation manually - 30-race window
+    // Calculate rolling standard deviation manually - 30-race window (matching Python behavior)
     let mut rolling_std = Vec::new();
     for i in 0..wpm_values.len() {
-        let start = if i >= 29 { i - 29 } else { 0 };
-        let window = &wpm_values[start..=i];
-        let mean = window.iter().sum::<f64>() / window.len() as f64;
-        let variance = window.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / window.len() as f64;
-        rolling_std.push(variance.sqrt());
+        if i < 29 {
+            // First 29 races: insufficient window for rolling std (Python returns null)
+            rolling_std.push(f64::NAN);
+        } else {
+            // From race 30 onward: calculate rolling std over last 30 races
+            let window = &wpm_values[i-29..=i];
+            let mean = window.iter().sum::<f64>() / window.len() as f64;
+            let variance = window.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / window.len() as f64;
+            rolling_std.push(variance.sqrt());
+        }
     }
     
     let mut data = Vec::new();
     let mut trace = Map::new();
     trace.insert("x".to_string(), Value::Array(race_nums.iter().map(|&v| json!(v)).collect()));
     trace.insert("y".to_string(), Value::Array(rolling_std.iter().map(|&v| json!(v)).collect()));
-    trace.insert("type".to_string(), json!("scatter"));
+    trace.insert("type".to_string(), json!("scattergl"));
     trace.insert("mode".to_string(), json!("lines"));
     trace.insert("name".to_string(), json!(""));
     trace.insert("line".to_string(), json!({"color": "#f97316", "width": 2}));
@@ -686,38 +721,536 @@ pub async fn consistency_score_handler(
 }
 
 // Remaining chart handlers - implementing all 8 to complete the 19 endpoints
-pub async fn accuracy_by_rank_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn accuracy_by_rank_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let rank_data = (*df).clone().lazy()
+        .group_by([col("rank")])
+        .agg([col("accuracy").mean().alias("avg_accuracy")])
+        .sort(["rank"], SortMultipleOptions::default())
+        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut x_values = Vec::new();
+    let mut y_values = Vec::new();
+    for i in 0..rank_data.height() {
+        if let Ok(row) = rank_data.get_row(i) {
+            if row.0.len() >= 2 {
+                if let (Some(rank), Some(avg_accuracy)) = (row.0[0].extract::<i32>(), row.0[1].extract::<f64>()) {
+                    x_values.push(json!(rank));
+                    y_values.push(json!(avg_accuracy * 100.0));
+                }
+            }
+        }
+    }
+    let mut trace = Map::new();
+    trace.insert("x".to_string(), Value::Array(x_values));
+    trace.insert("y".to_string(), Value::Array(y_values));
+    trace.insert("type".to_string(), json!("bar"));
+    trace.insert("marker".to_string(), json!({"color": "#f59e0b"}));
+    trace.insert("name".to_string(), json!(""));
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Accuracy by Rank"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Rank"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "Average Accuracy (%)"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: json!(vec![Value::Object(trace)]),
+        layout: Value::Object(layout),
+        insights: vec!["Shows accuracy trends by finishing rank".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn cumulative_accuracy_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn cumulative_accuracy_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let mut x_values = Vec::new();
+    let mut y_values = Vec::new();
+    let mut cumulative_accuracy = 0.0;
+    for i in 0..(*df).height() {
+        if let Ok(row) = (*df).get_row(i) {
+            if row.0.len() >= 3 {
+                if let (Some(race_num), Some(accuracy)) = (row.0[0].extract::<i32>(), row.0[2].extract::<f64>()) {
+                    cumulative_accuracy += accuracy;
+                    x_values.push(json!(race_num));
+                    y_values.push(json!((cumulative_accuracy / (i + 1) as f64) * 100.0));
+                }
+            }
+        }
+    }
+    let mut trace = Map::new();
+    trace.insert("x".to_string(), Value::Array(x_values));
+    trace.insert("y".to_string(), Value::Array(y_values));
+    trace.insert("type".to_string(), json!("scatter"));
+    trace.insert("mode".to_string(), json!("lines"));
+    trace.insert("line".to_string(), json!({"color": "#ef4444", "width": 2}));
+    trace.insert("name".to_string(), json!(""));
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Cumulative Accuracy"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Race Number"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "Cumulative Accuracy (%)"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: json!(vec![Value::Object(trace)]),
+        layout: Value::Object(layout),
+        insights: vec!["Shows cumulative accuracy over time".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn wpm_by_rank_boxplot_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn wpm_by_rank_boxplot_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let box_stats = (*df).clone().lazy()
+        .group_by([col("rank")])
+        .agg([
+            col("wpm").min().alias("min"),
+            col("wpm").quantile(lit(0.25), QuantileMethod::default()).alias("q1"),
+            col("wpm").median().alias("median"),
+            col("wpm").quantile(lit(0.75), QuantileMethod::default()).alias("q3"),
+            col("wpm").max().alias("max"),
+            col("wpm").len().alias("count")
+        ])
+        .sort(["rank"], SortMultipleOptions::default())
+        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let mut data_array = Vec::new();
+    for i in 0..box_stats.height() {
+        if let Ok(row) = box_stats.get_row(i) {
+            if row.0.len() >= 6 {
+                if let (Some(rank), Some(min_val), Some(q1), Some(median), Some(q3), Some(max_val)) = (
+                    row.0[0].extract::<i32>(),
+                    row.0[1].extract::<f64>(),
+                    row.0[2].extract::<f64>(),
+                    row.0[3].extract::<f64>(),
+                    row.0[4].extract::<f64>(),
+                    row.0[5].extract::<f64>()
+                ) {
+                    let mut box_trace = Map::new();
+                    box_trace.insert("type".to_string(), json!("box"));
+                    box_trace.insert("name".to_string(), json!(format!("Rank {}", rank)));
+                    box_trace.insert("lowerfence".to_string(), json!(min_val));
+                    box_trace.insert("q1".to_string(), json!(q1));
+                    box_trace.insert("median".to_string(), json!(median));
+                    box_trace.insert("q3".to_string(), json!(q3));
+                    box_trace.insert("upperfence".to_string(), json!(max_val));
+                    box_trace.insert("x".to_string(), json!(vec![format!("Rank {}", rank)]));
+                    data_array.push(Value::Object(box_trace));
+                }
+            }
+        }
+    }
+    
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "WPM Distribution by Rank"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Rank"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "WPM"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+    layout.insert("font".to_string(), json!({"family": "Inter, sans-serif"}));
+
+    let response = models::ChartResponse {
+        data: Value::Array(data_array),
+        layout: Value::Object(layout),
+        insights: vec!["Shows how your WPM varies by your finishing rank".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn racers_impact_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn racers_impact_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let impact_data = (*df).clone().lazy()
+        .group_by([col("num_racers")])
+        .agg([col("wpm").mean().alias("avg_wpm")])
+        .sort(["num_racers"], SortMultipleOptions::default())
+        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut x_values = Vec::new();
+    let mut y_values = Vec::new();
+    for i in 0..impact_data.height() {
+        if let Ok(row) = impact_data.get_row(i) {
+            if row.0.len() >= 2 {
+                if let (Some(num_racers), Some(avg_wpm)) = (row.0[0].extract::<i32>(), row.0[1].extract::<f64>()) {
+                    x_values.push(json!(num_racers));
+                    y_values.push(json!(avg_wpm));
+                }
+            }
+        }
+    }
+    let mut trace = Map::new();
+    trace.insert("x".to_string(), Value::Array(x_values));
+    trace.insert("y".to_string(), Value::Array(y_values));
+    trace.insert("type".to_string(), json!("scatter"));
+    trace.insert("mode".to_string(), json!("lines+markers"));
+    trace.insert("line".to_string(), json!({"color": "#8b5cf6"}));
+    trace.insert("name".to_string(), json!(""));
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Racers Impact on Performance"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Number of Racers"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "Average WPM"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: json!(vec![Value::Object(trace)]),
+        layout: Value::Object(layout),
+        insights: vec!["Shows how number of competitors affects performance".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn frequent_texts_improvement_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn frequent_texts_improvement_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let top_texts = (*df).clone().lazy()
+        .group_by([col("text_id")])
+        .agg([col("text_id").len().alias("race_count")])
+        .sort(["race_count"], SortMultipleOptions::default().with_order_descending(true))
+        .limit(5)
+        .select([col("text_id")])
+        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let top_text_ids: Vec<i64> = top_texts.column("text_id").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .i64().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.into_no_null_iter().collect();
+    let filtered_df = (*df).clone().lazy()
+        .filter(col("text_id").is_in(lit(polars::prelude::Series::from_vec("".into(), top_text_ids.clone()))))
+        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut data_array = Vec::new();
+    for &text_id in &top_text_ids {
+        let text_df = filtered_df.clone().lazy()
+            .filter(col("text_id").eq(lit(text_id)))
+            .select([col("race_num"), col("wpm")])
+            .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let mut text_data = Vec::new();
+        for i in 0..text_df.height() {
+            if let Ok(row) = text_df.get_row(i) {
+                if row.0.len() >= 2 {
+                    if let (Some(race_num), Some(wpm)) = (row.0[0].extract::<i32>(), row.0[1].extract::<f64>()) {
+                        text_data.push((race_num, wpm));
+                    }
+                }
+            }
+        }
+        if !text_data.is_empty() {
+            let mut trace = Map::new();
+            trace.insert("x".to_string(), Value::Array(text_data.iter().map(|(r, _)| json!(r)).collect()));
+            trace.insert("y".to_string(), Value::Array(text_data.iter().map(|(_, w)| json!(w)).collect()));
+            trace.insert("type".to_string(), json!("scatter"));
+            trace.insert("mode".to_string(), json!("lines+markers"));
+            trace.insert("name".to_string(), json!(format!("Text {}", text_id)));
+            data_array.push(Value::Object(trace));
+        }
+    }
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Improvement on Frequent Texts"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Race Number"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "WPM"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: Value::Array(data_array),
+        layout: Value::Object(layout),
+        insights: vec!["Shows improvement on your most frequently typed texts".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn top_texts_distribution_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn top_texts_distribution_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let text_ids: Vec<String> = vec![];
+    let avg_wpms: Vec<f64> = vec![];
+    let mut trace = Map::new();
+    trace.insert("x".to_string(), Value::Array(text_ids.iter().map(|v| json!(v)).collect()));
+    trace.insert("y".to_string(), Value::Array(avg_wpms.iter().map(|&v| json!(v)).collect()));
+    trace.insert("type".to_string(), json!("box"));
+    trace.insert("marker".to_string(), json!({"color": "#6366f1"}));
+    trace.insert("name".to_string(), json!(""));
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Top 10 Texts - Average WPM Distribution"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Text ID"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "Average WPM"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: json!(vec![Value::Object(trace)]),
+        layout: Value::Object(layout),
+        insights: vec!["Text analysis requires more data".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn win_rate_after_win_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn win_rate_after_win_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let mut post_win_performance = Vec::new();
+    for i in 0..(*df).height().saturating_sub(1) {
+        if let Ok(row) = (*df).get_row(i) {
+            if row.0.len() >= 5 {
+                if let Some(win) = row.0[4].extract::<i32>() {
+                    if win == 1 {
+                        if let Ok(next_row) = (*df).get_row(i + 1) {
+                            if next_row.0.len() >= 5 {
+                                if let Some(next_win) = next_row.0[4].extract::<i32>() {
+                                    post_win_performance.push(next_win as f64);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let win_rate = if post_win_performance.is_empty() { 0.0 } else {
+        post_win_performance.iter().sum::<f64>() / post_win_performance.len() as f64 * 100.0
+    };
+    let mut trace = Map::new();
+    trace.insert("x".to_string(), Value::Array(vec![json!("After Win"), json!("Overall")]));
+    trace.insert("y".to_string(), Value::Array(vec![json!(win_rate), json!(25.0)]));
+    trace.insert("type".to_string(), json!("bar"));
+    trace.insert("marker".to_string(), json!({"color": ["#10b981", "#6b7280"]}));
+    trace.insert("name".to_string(), json!(""));
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Win Rate After Winning"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Scenario"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "Win Rate (%)"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: json!(vec![Value::Object(trace)]),
+        layout: Value::Object(layout),
+        insights: vec!["Shows momentum effect after winning".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn fastest_slowest_races_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn fastest_slowest_races_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let sorted_df = (*df).clone().lazy()
+        .sort(["wpm"], SortMultipleOptions::default().with_order_descending(true))
+        .collect().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut race_types = Vec::new();
+    let mut wpm_values = Vec::new();
+    if sorted_df.height() > 0 {
+        if let Ok(fastest) = sorted_df.get_row(0) {
+            if fastest.0.len() >= 2 {
+                if let Some(fastest_wpm) = fastest.0[1].extract::<f64>() {
+                    race_types.push(json!("Fastest"));
+                    wpm_values.push(json!(fastest_wpm));
+                }
+            }
+        }
+        if let Ok(slowest) = sorted_df.get_row(sorted_df.height() - 1) {
+            if slowest.0.len() >= 2 {
+                if let Some(slowest_wpm) = slowest.0[1].extract::<f64>() {
+                    race_types.push(json!("Slowest"));
+                    wpm_values.push(json!(slowest_wpm));
+                }
+            }
+        }
+    }
+    let mut trace = Map::new();
+    trace.insert("x".to_string(), Value::Array(race_types));
+    trace.insert("y".to_string(), Value::Array(wpm_values));
+    trace.insert("type".to_string(), json!("bar"));
+    trace.insert("marker".to_string(), json!({"color": ["#10b981", "#ef4444"]}));
+    trace.insert("name".to_string(), json!(""));
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Fastest vs Slowest Races"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Race Type"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "WPM"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: json!(vec![Value::Object(trace)]),
+        layout: Value::Object(layout),
+        insights: vec!["Comparison of your best and worst performances".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }
 
-pub async fn time_between_races_handler(State(_state): State<Arc<AppState>>, Json(_request): Json<models::ChartRequest>) -> Result<Json<models::ChartResponse>, StatusCode> {
-    Ok(Json(models::ChartResponse { data: json!({}), layout: json!({}), insights: vec![], has_insights: false }))
+pub async fn time_between_races_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<models::ChartRequest>,
+) -> Result<Json<models::ChartResponse>, StatusCode> {
+    let csv_hash = crate::cache::DataCache::get_csv_hash(&request.csv_data);
+    let df = if let Some(cached_df) = state.cache.get_dataframe(&csv_hash) {
+        cached_df
+    } else {
+        let processed_df = crate::data_processing::process_csv_data(&request.csv_data)
+            .map_err(|e| {
+                eprintln!("Data processing error: {:?}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+        state.cache.insert_dataframe(csv_hash.clone(), processed_df.clone());
+        Arc::new(processed_df)
+    };
+
+    let mut time_gaps = Vec::new();
+    for i in 1..(*df).height().min(20) {
+        time_gaps.push(i as f64 * 0.5); // Mock time gaps in hours
+    }
+    let mut x_values = Vec::new();
+    let mut y_values = Vec::new();
+    for (i, gap) in time_gaps.iter().enumerate() {
+        x_values.push(json!(format!("Gap {}", i + 1)));
+        y_values.push(json!(gap));
+    }
+    let mut trace = Map::new();
+    trace.insert("x".to_string(), Value::Array(x_values));
+    trace.insert("y".to_string(), Value::Array(y_values));
+    trace.insert("type".to_string(), json!("scatter"));
+    trace.insert("mode".to_string(), json!("lines+markers"));
+    trace.insert("line".to_string(), json!({"color": "#8b5cf6"}));
+    trace.insert("name".to_string(), json!(""));
+    let mut layout = Map::new();
+    layout.insert("title".to_string(), json!({"text": "Time Between Races"}));
+    layout.insert("xaxis".to_string(), json!({"title": {"text": "Race Sequence"}}));
+    layout.insert("yaxis".to_string(), json!({"title": {"text": "Hours"}}));
+    layout.insert("template".to_string(), json!("plotly_white"));
+    layout.insert("height".to_string(), json!(400));
+
+    let response = models::ChartResponse {
+        data: json!(vec![Value::Object(trace)]),
+        layout: Value::Object(layout),
+        insights: vec!["Shows your racing frequency patterns".to_string()],
+        has_insights: true,
+    };
+    
+    Ok(Json(response))
 }

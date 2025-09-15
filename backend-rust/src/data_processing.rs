@@ -26,10 +26,10 @@ pub fn process_csv_data(csv_data: &str) -> PolarsResult<DataFrame> {
                 .strptime(
                     DataType::Datetime(TimeUnit::Microseconds, None),
                     StrptimeOptions {
-                        format: Some("%Y-%m-%d %H:%M:%S".to_string().into()),
+                        format: Some("%Y-%m-%d %H:%M:%S".into()),
                         strict: false,
-                        exact: true,
-                        ..Default::default()
+                        exact: false,
+                        cache: true,
                     },
                     lit("raise")
                 )
@@ -40,6 +40,10 @@ pub fn process_csv_data(csv_data: &str) -> PolarsResult<DataFrame> {
             (col("rank").eq(lit(1))).cast(DataType::Int32).alias("win"),
             // Create year_month column for performance-over-time charts
             col("datetime_utc").dt().truncate(lit("1mo")).alias("year_month"),
+            // Create hour column for hourly performance
+            col("datetime_utc").dt().hour().alias("hour"),
+            // Create date column for daily performance
+            col("datetime_utc").dt().date().alias("date"),
         ])
         .sort(["race_num"], SortMultipleOptions::default())
         .collect()?;

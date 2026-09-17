@@ -1,0 +1,27 @@
+{
+  "method": "Codex in-app browser, same Mac, sample button to visible first chart, alternating origins, browser cache warm. Includes automation overhead. No CPU/network throttling.",
+  "sample_rows": 34617,
+  "before_ms": [
+    1078,
+    975,
+    982
+  ],
+  "after_ms": [
+    337,
+    340,
+    337
+  ],
+  "after_first_sample_ms": 1817,
+  "first_sample_note": "No comparable cold before value captured; do not use for speed ratio.",
+  "earlier_before_ms": [
+    1599,
+    1093,
+    969
+  ],
+  "earlier_after_ms": [
+    337,
+    341,
+    342
+  ],
+  "final_cloudflare_version": "81430f5a-a42d-43bf-928a-b86c32e2b97b"
+}

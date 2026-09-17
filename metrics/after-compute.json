@@ -1,0 +1,272 @@
+{
+  "runtime": "v25.2.1",
+  "method": "Node.js on this Mac; parse + stats + all 20 chart calculations, excludes rendering and worker messaging.",
+  "runs": [
+    {
+      "parse_ms": 73.642084,
+      "stats_ms": 2.7772500000000093,
+      "charts": {
+        "wpm-distribution": 14.043667,
+        "accuracy-distribution": 4.602457999999984,
+        "performance-over-time": 6.57933300000002,
+        "daily-performance": 10.647208000000006,
+        "rolling-average": 3.516458,
+        "rank-distribution": 2.9661669999999845,
+        "hourly-performance": 12.995499999999993,
+        "wpm-vs-accuracy": 7.170208000000002,
+        "win-rate-monthly": 4.2536249999999995,
+        "top-texts": 217.236666,
+        "consistency-score": 55.75137499999994,
+        "accuracy-by-rank": 3.877458000000047,
+        "cumulative-accuracy": 1.6442089999999325,
+        "wpm-by-rank-boxplot": 2.782375000000002,
+        "racers-impact": 2.779083000000014,
+        "frequent-texts-improvement": 191.72295899999995,
+        "top-texts-distribution": 197.75824999999998,
+        "win-rate-after-win": 3.169125000000008,
+        "fastest-slowest-races": 7.629291999999964,
+        "time-between-races": 34.86424999999997
+      },
+      "total_ms": 862.5175839999999,
+      "stats": {
+        "total_races": 34617,
+        "avg_wpm": 97.2760782274605,
+        "best_wpm": 186,
+        "total_wins": 13776,
+        "avg_accuracy": 0.9760320073953426,
+        "date_range": {
+          "start": "2020-05-24T08:10:51Z",
+          "end": "2024-12-10T09:49:54Z"
+        }
+      }
+    },
+    {
+      "parse_ms": 83.72012500000005,
+      "stats_ms": 2.4880829999999605,
+      "charts": {
+        "wpm-distribution": 3.294750000000022,
+        "accuracy-distribution": 2.6817089999999553,
+        "performance-over-time": 4.297042000000147,
+        "daily-performance": 9.067166999999927,
+        "rolling-average": 4.129875000000084,
+        "rank-distribution": 3.5505829999999605,
+        "hourly-performance": 17.601416999999856,
+        "wpm-vs-accuracy": 8.79791699999987,
+        "win-rate-monthly": 7.649291000000176,
+        "top-texts": 203.87187500000005,
+        "consistency-score": 38.204041999999845,
+        "accuracy-by-rank": 3.7651659999999083,
+        "cumulative-accuracy": 1.4589169999999285,
+        "wpm-by-rank-boxplot": 2.630332999999837,
+        "racers-impact": 3.209666999999854,
+        "frequent-texts-improvement": 189.6457499999999,
+        "top-texts-distribution": 178.62929200000008,
+        "win-rate-after-win": 1.9699169999998958,
+        "fastest-slowest-races": 6.877917000000025,
+        "time-between-races": 20.002040999999963
+      },
+      "total_ms": 797.5979580000001,
+      "stats": {
+        "total_races": 34617,
+        "avg_wpm": 97.2760782274605,
+        "best_wpm": 186,
+        "total_wins": 13776,
+        "avg_accuracy": 0.9760320073953426,
+        "date_range": {
+          "start": "2020-05-24T08:10:51Z",
+          "end": "2024-12-10T09:49:54Z"
+        }
+      }
+    },
+    {
+      "parse_ms": 68.90754199999992,
+      "stats_ms": 3.81837500000006,
+      "charts": {
+        "wpm-distribution": 2.9600419999999303,
+        "accuracy-distribution": 2.8373340000000553,
+        "performance-over-time": 6.532875000000104,
+        "daily-performance": 10.968082999999979,
+        "rolling-average": 1.5942919999999958,
+        "rank-distribution": 15.607791000000134,
+        "hourly-performance": 12.095708000000059,
+        "wpm-vs-accuracy": 4.832625000000007,
+        "win-rate-monthly": 3.1221250000000964,
+        "top-texts": 183.2381660000001,
+        "consistency-score": 24.846042000000125,
+        "accuracy-by-rank": 2.744000000000142,
+        "cumulative-accuracy": 1.3921250000003056,
+        "wpm-by-rank-boxplot": 2.316790999999739,
+        "racers-impact": 2.7736250000002656,
+        "frequent-texts-improvement": 186.65941600000042,
+        "top-texts-distribution": 180.7028750000004,
+        "win-rate-after-win": 1.7000419999999394,
+        "fastest-slowest-races": 6.392249999999876,
+        "time-between-races": 18.479417000000012
+      },
+      "total_ms": 744.6028749999998,
+      "stats": {
+        "total_races": 34617,
+        "avg_wpm": 97.2760782274605,
+        "best_wpm": 186,
+        "total_wins": 13776,
+        "avg_accuracy": 0.9760320073953426,
+        "date_range": {
+          "start": "2020-05-24T08:10:51Z",
+          "end": "2024-12-10T09:49:54Z"
+        }
+      }
+    },
+    {
+      "parse_ms": 60.871042000000216,
+      "stats_ms": 3.454291999999896,
+      "charts": {
+        "wpm-distribution": 3.2099169999996775,
+        "accuracy-distribution": 2.442457999999988,
+        "performance-over-time": 8.486374999999953,
+        "daily-performance": 31.14449999999988,
+        "rolling-average": 1.7322920000001432,
+        "rank-distribution": 2.4585409999999683,
+        "hourly-performance": 11.97058300000026,
+        "wpm-vs-accuracy": 4.466207999999824,
+        "win-rate-monthly": 3.150333000000046,
+        "top-texts": 189.19495800000004,
+        "consistency-score": 22.13116600000012,
+        "accuracy-by-rank": 12.279833999999937,
+        "cumulative-accuracy": 1.1502089999999043,
+        "wpm-by-rank-boxplot": 2.720249999999851,
+        "racers-impact": 2.635124999999789,
+        "frequent-texts-improvement": 176.633875,
+        "top-texts-distribution": 176.27195800000027,
+        "win-rate-after-win": 1.524417000000085,
+        "fastest-slowest-races": 6.355667000000267,
+        "time-between-races": 18.491500000000087
+      },
+      "total_ms": 742.8190420000001,
+      "stats": {
+        "total_races": 34617,
+        "avg_wpm": 97.2760782274605,
+        "best_wpm": 186,
+        "total_wins": 13776,
+        "avg_accuracy": 0.9760320073953426,
+        "date_range": {
+          "start": "2020-05-24T08:10:51Z",
+          "end": "2024-12-10T09:49:54Z"
+        }
+      }
+    },
+    {
+      "parse_ms": 58.731083000000126,
+      "stats_ms": 3.3039169999997284,
+      "charts": {
+        "wpm-distribution": 3.0681249999997817,
+        "accuracy-distribution": 2.9267500000000837,
+        "performance-over-time": 26.763500000000022,
+        "daily-performance": 7.70333299999993,
+        "rolling-average": 1.6030829999999696,
+        "rank-distribution": 2.682499999999891,
+        "hourly-performance": 12.331208999999944,
+        "wpm-vs-accuracy": 5.115041999999903,
+        "win-rate-monthly": 3.3884579999999005,
+        "top-texts": 189.8217499999996,
+        "consistency-score": 27.940040999999837,
+        "accuracy-by-rank": 2.717791000000034,
+        "cumulative-accuracy": 1.267917000000125,
+        "wpm-by-rank-boxplot": 2.391541999999845,
+        "racers-impact": 2.6477920000002086,
+        "frequent-texts-improvement": 176.7928750000001,
+        "top-texts-distribution": 184.82408299999997,
+        "win-rate-after-win": 1.4711670000001504,
+        "fastest-slowest-races": 6.371999999999844,
+        "time-between-races": 27.088999999999942
+      },
+      "total_ms": 750.9990830000002,
+      "stats": {
+        "total_races": 34617,
+        "avg_wpm": 97.2760782274605,
+        "best_wpm": 186,
+        "total_wins": 13776,
+        "avg_accuracy": 0.9760320073953426,
+        "date_range": {
+          "start": "2020-05-24T08:10:51Z",
+          "end": "2024-12-10T09:49:54Z"
+        }
+      }
+    },
+    {
+      "parse_ms": 96.18049999999994,
+      "stats_ms": 3.1853330000003552,
+      "charts": {
+        "wpm-distribution": 4.199249999999665,
+        "accuracy-distribution": 2.9748749999998836,
+        "performance-over-time": 5.527666999999383,
+        "daily-performance": 8.606041999999434,
+        "rolling-average": 1.9428330000000642,
+        "rank-distribution": 3.174167000000125,
+        "hourly-performance": 12.412709000000177,
+        "wpm-vs-accuracy": 5.303082999999788,
+        "win-rate-monthly": 5.823124999999891,
+        "top-texts": 199.61991600000056,
+        "consistency-score": 36.990874999999505,
+        "accuracy-by-rank": 2.9272090000004027,
+        "cumulative-accuracy": 1.6936249999998836,
+        "wpm-by-rank-boxplot": 2.521582999999737,
+        "racers-impact": 12.136707999999999,
+        "frequent-texts-improvement": 179.1250829999999,
+        "top-texts-distribution": 184.9371659999997,
+        "win-rate-after-win": 1.4802920000001905,
+        "fastest-slowest-races": 6.841625000000022,
+        "time-between-races": 19.713458999999602
+      },
+      "total_ms": 797.4305840000002,
+      "stats": {
+        "total_races": 34617,
+        "avg_wpm": 97.2760782274605,
+        "best_wpm": 186,
+        "total_wins": 13776,
+        "avg_accuracy": 0.9760320073953426,
+        "date_range": {
+          "start": "2020-05-24T08:10:51Z",
+          "end": "2024-12-10T09:49:54Z"
+        }
+      }
+    },
+    {
+      "parse_ms": 62.31524999999965,
+      "stats_ms": 3.4762909999999465,
+      "charts": {
+        "wpm-distribution": 3.580957999999555,
+        "accuracy-distribution": 2.2377499999993233,
+        "performance-over-time": 27.31812499999978,
+        "daily-performance": 8.590959000000112,
+        "rolling-average": 2.2199170000003505,
+        "rank-distribution": 2.6772090000004027,
+        "hourly-performance": 13.050459000000046,
+        "wpm-vs-accuracy": 5.560416000000259,
+        "win-rate-monthly": 3.7668750000002547,
+        "top-texts": 200.81916600000022,
+        "consistency-score": 28.550499999999374,
+        "accuracy-by-rank": 2.952874999999949,
+        "cumulative-accuracy": 1.5367919999998776,
+        "wpm-by-rank-boxplot": 2.4700000000002547,
+        "racers-impact": 2.7624589999995806,
+        "frequent-texts-improvement": 180.7540829999998,
+        "top-texts-distribution": 188.36625000000004,
+        "win-rate-after-win": 2.7120840000006865,
+        "fastest-slowest-races": 7.133708999999726,
+        "time-between-races": 29.663916999999856
+      },
+      "total_ms": 782.5520420000003,
+      "stats": {
+        "total_races": 34617,
+        "avg_wpm": 97.2760782274605,
+        "best_wpm": 186,
+        "total_wins": 13776,
+        "avg_accuracy": 0.9760320073953426,
+        "date_range": {
+          "start": "2020-05-24T08:10:51Z",
+          "end": "2024-12-10T09:49:54Z"
+        }
+      }
+    }
+  ]
+}

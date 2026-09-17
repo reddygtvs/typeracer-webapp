@@ -1,34 +1,20 @@
-// Add these new interfaces
+import type { Data, Layout, Config } from "plotly.js";
 export interface StatsResponse {
   total_races: number;
   avg_wpm: number;
   best_wpm: number;
   total_wins: number;
   avg_accuracy: number;
-  date_range: {
-    start: string;
-    end: string;
-  };
+  date_range: { start: string; end: string };
 }
-
 export interface ChartResponse {
-  data: any[];
-  layout: any;
+  data: Data[];
+  layout: Partial<Layout>;
   insights: string[];
   has_insights: boolean;
 }
-
-// Update the existing RaceData interface
 export interface RaceData {
   stats: StatsResponse;
-  csvData: string; // ADD this field
+  csvData: string;
 }
-
-// Keep existing ChartData interface as is
-export type ChartData = {
-  data: any[];
-  layout: any;
-  config?: any;
-  insights?: string[];
-  has_insights?: boolean;
-};
+export type ChartData = ChartResponse & { config?: Partial<Config> };

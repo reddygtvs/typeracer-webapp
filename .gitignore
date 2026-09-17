@@ -35,3 +35,5 @@ benchmark_results_*.json
 # Build artifacts
 backend/static/
 test_api_url.html
+frontend/public/sample-data.csv.gz
+.wrangler/

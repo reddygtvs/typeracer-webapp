@@ -1,99 +1,134 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Upload, BarChart3, TrendingUp } from 'lucide-react';
-import FileUpload from './components/FileUpload';
-import Dashboard from './components/Dashboard';
-import { RaceData } from './types';
-import { getStats } from './utils/api';
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  Suspense,
+  lazy,
+} from "react";
+import { Upload, BarChart3 } from "lucide-react";
+import FileUpload from "./components/FileUpload";
+const Dashboard = lazy(() => import("./components/Dashboard"));
+import { RaceData } from "./types";
+import { getStats } from "./utils/api";
 
 function App() {
   const [data, setData] = useState<RaceData | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const processCSVData = async (csvData: string, source: string) => {
-    setLoading(true);
+  const requestVersion = useRef(0);
+  const [error, setError] = useState("");
+  const clearSavedData = () => {
     try {
-      const stats = await getStats(csvData);
-      const raceData: RaceData = { stats, csvData };
-      setData(raceData);
-
-      // Optional: Persist to localStorage
-      localStorage.setItem('typeracer-csv', csvData);
-      localStorage.setItem('typeracer-stats', JSON.stringify(stats));
-      localStorage.setItem('typeracer-source', source);
-    } catch (error: any) {
-      console.error('Failed to process CSV:', error);
-      alert(error.response?.data?.detail || 'Failed to process CSV data');
-    } finally {
-      setLoading(false);
+      for (const key of [
+        "typeracer-csv",
+        "typeracer-stats",
+        "typeracer-source",
+      ])
+        localStorage.removeItem(key);
+    } catch {
+      /* Storage is optional. */
     }
   };
+  const processCSVData = useCallback(
+    async (csvData: string, source: string, version: number) => {
+      if (version !== requestVersion.current) return;
+      try {
+        const stats = await getStats(csvData);
+        if (version !== requestVersion.current) return;
+        setData({ stats, csvData });
+        try {
+          localStorage.setItem("typeracer-csv", csvData);
+        } catch {
+          /* Valid data remains usable when storage is unavailable. */
+        }
+      } catch (error) {
+        if (version !== requestVersion.current) return;
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Could not process this CSV.",
+        );
+        if (source === "restored") clearSavedData();
+      } finally {
+        if (version === requestVersion.current) setLoading(false);
+      }
+    },
+    [],
+  );
 
-  const handleFileUpload = useCallback(async (file: File) => {
-    // For large files, use streaming approach
-    let csvData: string;
-    
-    if (file.size > 500_000) { // 500KB threshold
-      // Stream large files in chunks to avoid blocking UI
-      csvData = await streamFileRead(file);
-    } else {
-      csvData = await file.text();
-    }
-    
-    await processCSVData(csvData, 'upload');
-  }, []);
-
-  const streamFileRead = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        resolve(e.target?.result as string);
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsText(file);
-    });
-  };
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      const version = ++requestVersion.current;
+      setError("");
+      if (file.size > 20_000_000) {
+        setError("CSV exceeds the 20 MB limit.");
+        return;
+      }
+      setLoading(true);
+      try {
+        await processCSVData(await file.text(), "upload", version);
+      } catch {
+        if (version === requestVersion.current) {
+          setError("Could not read this file.");
+          setLoading(false);
+        }
+      }
+    },
+    [processCSVData],
+  );
 
   const handleSampleData = useCallback(async () => {
+    const version = ++requestVersion.current;
+    setError("");
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await fetch('/sample-data.csv');
-      if (!response.ok) {
-        throw new Error('Failed to fetch sample data');
+      const compressed = typeof DecompressionStream !== "undefined";
+      const response = await fetch(
+        compressed ? "/sample-data.csv.gz" : "/sample-data.csv",
+      );
+      if (!response.ok) throw new Error("Could not fetch sample data.");
+      const csvData =
+        compressed &&
+        response.body &&
+        !response.headers.get("content-encoding")?.includes("gzip")
+          ? await new Response(
+              response.body.pipeThrough(new DecompressionStream("gzip")),
+            ).text()
+          : await response.text();
+      await processCSVData(csvData, "sample", version);
+    } catch {
+      if (version === requestVersion.current) {
+        setError("Could not load sample data. Please try again.");
+        setLoading(false);
       }
-      const csvData = await response.text();
-      await processCSVData(csvData, 'sample');
-    } catch (error) {
-      console.error('Failed to load sample data:', error);
-      alert('Failed to load sample data. Make sure sample-data.csv exists in the public folder.');
-      setLoading(false);
     }
-  }, []);
+  }, [processCSVData]);
 
   const handleReset = useCallback(() => {
+    requestVersion.current++;
     setData(null);
     setLoading(false);
-    localStorage.removeItem('typeracer-csv');
-    localStorage.removeItem('typeracer-stats');
-    localStorage.removeItem('typeracer-source');
+    setError("");
+    clearSavedData();
   }, []);
 
-  // Restore data on page load
   useEffect(() => {
-    const savedCsv = localStorage.getItem('typeracer-csv');
-    const savedStats = localStorage.getItem('typeracer-stats');
-    if (savedCsv && savedStats) {
-      try {
-        const stats = JSON.parse(savedStats);
-        setData({ csvData: savedCsv, stats });
-      } catch (error) {
-        console.error('Failed to restore saved data:', error);
-        // Clear corrupted data
-        localStorage.removeItem('typeracer-csv');
-        localStorage.removeItem('typeracer-stats');
-        localStorage.removeItem('typeracer-source');
-      }
+    let savedCSV: string | null;
+    try {
+      savedCSV = localStorage.getItem("typeracer-csv");
+    } catch {
+      return;
     }
-  }, []);
+    if (savedCSV) {
+      setLoading(true);
+      void processCSVData(savedCSV, "restored", ++requestVersion.current);
+    }
+    const request = requestVersion;
+    return () => {
+      request.current++;
+    };
+  }, [processCSVData]);
 
   return (
     <div className="min-h-screen bg-premium">
@@ -115,14 +150,18 @@ function App() {
                 <h1
                   className="text-lg font-light text-white cursor-pointer"
                   style={{ letterSpacing: "-0.01em" }}
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  onClick={() =>
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                  }
                 >
-                  <span className="font-medium text-gradient-green">TypeRacer</span>
+                  <span className="font-medium text-gradient-green">
+                    TypeRacer
+                  </span>
                   <span className="text-white/90 font-light">Analytics</span>
                 </h1>
               </div>
             </div>
-            
+
             {data && (
               <button
                 onClick={handleReset}
@@ -144,6 +183,14 @@ function App() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-6 pb-20">
+        {error && (
+          <p
+            role="alert"
+            className="mb-6 rounded border border-red-500/50 bg-red-950/30 p-4 text-red-200"
+          >
+            {error}
+          </p>
+        )}
         {!data ? (
           <div className="text-center mb-16 animate-fade-up">
             <div className="inline-flex items-center glass px-4 py-2 rounded-lg mb-6">
@@ -174,7 +221,9 @@ function App() {
           </div>
         ) : (
           <div className="animate-fade-up">
-            <Dashboard data={data} />
+            <Suspense fallback={<p>Loading dashboard...</p>}>
+              <Dashboard key={data.csvData} data={data} />
+            </Suspense>
           </div>
         )}
       </main>

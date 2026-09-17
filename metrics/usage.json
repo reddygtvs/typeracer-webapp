@@ -1,0 +1,59 @@
+{
+  "codex": {
+    "first_read_utc": "2026-09-17T06:46:00Z",
+    "weekly_used_percent": 65,
+    "scope": "Session token counters include repeated context and cached input. They are not unique text or a billing estimate. Account usage readings were taken during this task and include other tasks.",
+    "session_token_usage": {
+      "input_tokens": 15108740,
+      "cached_input_tokens": 13643776,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 36593,
+      "reasoning_output_tokens": 8418,
+      "total_tokens": 15145333
+    },
+    "last_weekly_used_percent": 70
+  },
+  "devin": {
+    "model": "swe-2-high",
+    "session": "available-grenadilla",
+    "price_label": "Free",
+    "cli": "3000.10.27",
+    "work": "Analytics correctness, performance review and tests",
+    "sessions": [
+      {
+        "id": "available-grenadilla",
+        "model": "SWE-2 Medium",
+        "metrics": {
+          "total_prompt_tokens": 249428,
+          "total_completion_tokens": 8586,
+          "total_cached_tokens": 148303,
+          "total_steps": 18
+        },
+        "purpose": "session"
+      },
+      {
+        "id": "four-healer",
+        "model": "SWE-2 Medium",
+        "metrics": {
+          "total_prompt_tokens": 69803,
+          "total_completion_tokens": 2027,
+          "total_cached_tokens": 55440,
+          "total_steps": 12
+        },
+        "purpose": "fix"
+      },
+      {
+        "id": "marshy-seagull",
+        "model": "SWE-2 Medium",
+        "metrics": {
+          "total_prompt_tokens": 47464,
+          "total_completion_tokens": 3565,
+          "total_cached_tokens": 36535,
+          "total_steps": 11
+        },
+        "purpose": "insights"
+      }
+    ],
+    "note": "Free model label confirmed by Devin CLI. Includes one interrupted review and two completed tasks. A small connection probe is not included. Canceled requests may not be fully represented."
+  }
+}

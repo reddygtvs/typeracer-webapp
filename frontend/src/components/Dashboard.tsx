@@ -15,7 +15,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'numeric',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     });
   };
 

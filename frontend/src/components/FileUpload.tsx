@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, AlertCircle, Database } from 'lucide-react';
+import { Upload, FileText, Database } from 'lucide-react';
 
 interface FileUploadProps {
   onFileUpload: (file: File) => Promise<void>;

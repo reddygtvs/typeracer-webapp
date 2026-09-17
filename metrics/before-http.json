@@ -1,0 +1,427 @@
+{
+  "origin": "https://typeracer-webapp.fly.dev",
+  "utc": "2026-09-17T06:40:24Z",
+  "requests": {
+    "/": [
+      {
+        "http_code": 200,
+        "time_namelookup": 0.00133,
+        "time_connect": 0.025966,
+        "time_appconnect": 0.074547,
+        "time_starttransfer": 0.243702,
+        "time_total": 0.243838,
+        "size_download": 382,
+        "speed_download": 1566
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002513,
+        "time_connect": 0.02944,
+        "time_appconnect": 0.0631,
+        "time_starttransfer": 0.257824,
+        "time_total": 0.25797,
+        "size_download": 382,
+        "speed_download": 1480
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002538,
+        "time_connect": 0.024416,
+        "time_appconnect": 0.054334,
+        "time_starttransfer": 0.14806,
+        "time_total": 0.14891,
+        "size_download": 382,
+        "speed_download": 2565
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002101,
+        "time_connect": 0.040618,
+        "time_appconnect": 0.079358,
+        "time_starttransfer": 0.179305,
+        "time_total": 0.179409,
+        "size_download": 382,
+        "speed_download": 2129
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002767,
+        "time_connect": 0.034386,
+        "time_appconnect": 0.074157,
+        "time_starttransfer": 0.25772,
+        "time_total": 0.257873,
+        "size_download": 382,
+        "speed_download": 1481
+      }
+    ],
+    "/assets/index-DP6_b28q.js": [
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002228,
+        "time_connect": 0.028536,
+        "time_appconnect": 0.058551,
+        "time_starttransfer": 0.177327,
+        "time_total": 0.509888,
+        "size_download": 2174785,
+        "speed_download": 4265220
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.001859,
+        "time_connect": 0.018757,
+        "time_appconnect": 0.051299,
+        "time_starttransfer": 0.149716,
+        "time_total": 0.605663,
+        "size_download": 2174782,
+        "speed_download": 3590746
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002075,
+        "time_connect": 0.023882,
+        "time_appconnect": 0.071436,
+        "time_starttransfer": 0.16175,
+        "time_total": 0.418175,
+        "size_download": 2174795,
+        "speed_download": 5200681
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.001994,
+        "time_connect": 0.025292,
+        "time_appconnect": 0.058468,
+        "time_starttransfer": 0.157442,
+        "time_total": 0.451871,
+        "size_download": 2174788,
+        "speed_download": 4812851
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.001504,
+        "time_connect": 0.033536,
+        "time_appconnect": 0.071791,
+        "time_starttransfer": 0.224692,
+        "time_total": 0.67986,
+        "size_download": 2174782,
+        "speed_download": 3198867
+      }
+    ],
+    "/assets/index-BJdwCza0.css": [
+      {
+        "http_code": 200,
+        "time_namelookup": 0.001969,
+        "time_connect": 0.026889,
+        "time_appconnect": 0.075011,
+        "time_starttransfer": 0.180296,
+        "time_total": 0.188963,
+        "size_download": 7592,
+        "speed_download": 40177
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002645,
+        "time_connect": 0.027223,
+        "time_appconnect": 0.056877,
+        "time_starttransfer": 0.173146,
+        "time_total": 0.173275,
+        "size_download": 7612,
+        "speed_download": 43930
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.001213,
+        "time_connect": 0.031677,
+        "time_appconnect": 0.069882,
+        "time_starttransfer": 0.242964,
+        "time_total": 0.303728,
+        "size_download": 7597,
+        "speed_download": 25012
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002073,
+        "time_connect": 0.026101,
+        "time_appconnect": 0.053595,
+        "time_starttransfer": 0.148464,
+        "time_total": 0.153068,
+        "size_download": 7587,
+        "speed_download": 49566
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002607,
+        "time_connect": 0.030365,
+        "time_appconnect": 0.068754,
+        "time_starttransfer": 0.162742,
+        "time_total": 0.168239,
+        "size_download": 7596,
+        "speed_download": 45150
+      }
+    ],
+    "/sample-data.csv": [
+      {
+        "http_code": 200,
+        "time_namelookup": 0.003325,
+        "time_connect": 0.026209,
+        "time_appconnect": 0.059379,
+        "time_starttransfer": 0.233485,
+        "time_total": 0.702411,
+        "size_download": 1613939,
+        "speed_download": 2297713
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.00209,
+        "time_connect": 0.036117,
+        "time_appconnect": 0.086011,
+        "time_starttransfer": 0.197317,
+        "time_total": 0.635154,
+        "size_download": 1613939,
+        "speed_download": 2541019
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.002391,
+        "time_connect": 0.042586,
+        "time_appconnect": 0.077994,
+        "time_starttransfer": 0.1768,
+        "time_total": 0.621291,
+        "size_download": 1613939,
+        "speed_download": 2597718
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.00204,
+        "time_connect": 0.022396,
+        "time_appconnect": 0.053751,
+        "time_starttransfer": 0.152556,
+        "time_total": 0.41524,
+        "size_download": 1613939,
+        "speed_download": 3886761
+      },
+      {
+        "http_code": 200,
+        "time_namelookup": 0.00195,
+        "time_connect": 0.026033,
+        "time_appconnect": 0.059146,
+        "time_starttransfer": 0.164953,
+        "time_total": 0.39865,
+        "size_download": 1613939,
+        "speed_download": 4048511
+      }
+    ]
+  },
+  "analytics": {
+    "/stats": {
+      "http_code": 200,
+      "time_namelookup": 0.002012,
+      "time_connect": 0.024839,
+      "time_appconnect": 0.06314,
+      "time_starttransfer": 1.101218,
+      "time_total": 1.101303,
+      "size_download": 194,
+      "speed_download": 176
+    },
+    "/charts/wpm-distribution": {
+      "http_code": 200,
+      "time_namelookup": 0.001478,
+      "time_connect": 0.022789,
+      "time_appconnect": 0.061139,
+      "time_starttransfer": 1.084422,
+      "time_total": 1.219824,
+      "size_download": 66523,
+      "speed_download": 54534
+    },
+    "/charts/accuracy-distribution": {
+      "http_code": 200,
+      "time_namelookup": 0.001829,
+      "time_connect": 0.025232,
+      "time_appconnect": 0.073126,
+      "time_starttransfer": 1.219256,
+      "time_total": 1.348564,
+      "size_download": 48525,
+      "speed_download": 35982
+    },
+    "/charts/performance-over-time": {
+      "http_code": 200,
+      "time_namelookup": 0.00223,
+      "time_connect": 0.029369,
+      "time_appconnect": 0.065026,
+      "time_starttransfer": 1.389172,
+      "time_total": 1.389294,
+      "size_download": 3234,
+      "speed_download": 2327
+    },
+    "/charts/daily-performance": {
+      "http_code": 200,
+      "time_namelookup": 0.002375,
+      "time_connect": 0.029593,
+      "time_appconnect": 0.061898,
+      "time_starttransfer": 1.292281,
+      "time_total": 1.321534,
+      "size_download": 14111,
+      "speed_download": 10677
+    },
+    "/charts/rolling-average": {
+      "http_code": 200,
+      "time_namelookup": 0.002105,
+      "time_connect": 0.029314,
+      "time_appconnect": 0.06167,
+      "time_starttransfer": 0.966127,
+      "time_total": 1.103608,
+      "size_download": 232301,
+      "speed_download": 210492
+    },
+    "/charts/rank-distribution": {
+      "http_code": 200,
+      "time_namelookup": 0.001502,
+      "time_connect": 0.022173,
+      "time_appconnect": 0.053314,
+      "time_starttransfer": 0.614537,
+      "time_total": 0.614677,
+      "size_download": 2471,
+      "speed_download": 4019
+    },
+    "/charts/hourly-performance": {
+      "http_code": 200,
+      "time_namelookup": 0.001405,
+      "time_connect": 0.025992,
+      "time_appconnect": 0.058223,
+      "time_starttransfer": 0.692331,
+      "time_total": 0.692443,
+      "size_download": 2880,
+      "speed_download": 4159
+    },
+    "/charts/wpm-vs-accuracy": {
+      "http_code": 200,
+      "time_namelookup": 0.002728,
+      "time_connect": 0.028321,
+      "time_appconnect": 0.081995,
+      "time_starttransfer": 1.258207,
+      "time_total": 1.39251,
+      "size_download": 112218,
+      "speed_download": 80586
+    },
+    "/charts/win-rate-monthly": {
+      "http_code": 200,
+      "time_namelookup": 0.001412,
+      "time_connect": 0.059962,
+      "time_appconnect": 0.157292,
+      "time_starttransfer": 0.865521,
+      "time_total": 0.892184,
+      "size_download": 3177,
+      "speed_download": 3560
+    },
+    "/charts/top-texts": {
+      "http_code": 200,
+      "time_namelookup": 0.001321,
+      "time_connect": 0.113638,
+      "time_appconnect": 0.230673,
+      "time_starttransfer": 0.964893,
+      "time_total": 0.965007,
+      "size_download": 2653,
+      "speed_download": 2749
+    },
+    "/charts/consistency-score": {
+      "http_code": 200,
+      "time_namelookup": 0.001375,
+      "time_connect": 0.110842,
+      "time_appconnect": 0.233277,
+      "time_starttransfer": 1.352772,
+      "time_total": 1.746978,
+      "size_download": 573483,
+      "speed_download": 328271
+    },
+    "/charts/accuracy-by-rank": {
+      "http_code": 200,
+      "time_namelookup": 0.001518,
+      "time_connect": 0.036621,
+      "time_appconnect": 0.157632,
+      "time_starttransfer": 1.09791,
+      "time_total": 1.100195,
+      "size_download": 2514,
+      "speed_download": 2285
+    },
+    "/charts/cumulative-accuracy": {
+      "http_code": 200,
+      "time_namelookup": 0.001441,
+      "time_connect": 0.072518,
+      "time_appconnect": 0.144536,
+      "time_starttransfer": 1.239913,
+      "time_total": 1.536743,
+      "size_download": 502556,
+      "speed_download": 327026
+    },
+    "/charts/wpm-by-rank-boxplot": {
+      "http_code": 200,
+      "time_namelookup": 0.001341,
+      "time_connect": 0.046067,
+      "time_appconnect": 0.087113,
+      "time_starttransfer": 0.969608,
+      "time_total": 1.127927,
+      "size_download": 94526,
+      "speed_download": 83805
+    },
+    "/charts/racers-impact": {
+      "http_code": 200,
+      "time_namelookup": 0.00142,
+      "time_connect": 0.104313,
+      "time_appconnect": 0.155673,
+      "time_starttransfer": 0.926906,
+      "time_total": 0.92703,
+      "size_download": 2338,
+      "speed_download": 2522
+    },
+    "/charts/frequent-texts-improvement": {
+      "http_code": 200,
+      "time_namelookup": 0.001772,
+      "time_connect": 0.039771,
+      "time_appconnect": 0.133418,
+      "time_starttransfer": 0.679322,
+      "time_total": 0.691475,
+      "size_download": 4484,
+      "speed_download": 6484
+    },
+    "/charts/top-texts-distribution": {
+      "http_code": 200,
+      "time_namelookup": 0.001354,
+      "time_connect": 0.025147,
+      "time_appconnect": 0.0588,
+      "time_starttransfer": 0.593785,
+      "time_total": 0.593907,
+      "size_download": 2931,
+      "speed_download": 4935
+    },
+    "/charts/win-rate-after-win": {
+      "http_code": 200,
+      "time_namelookup": 0.001678,
+      "time_connect": 0.035837,
+      "time_appconnect": 0.078027,
+      "time_starttransfer": 2.793685,
+      "time_total": 2.795557,
+      "size_download": 2494,
+      "speed_download": 892
+    },
+    "/charts/fastest-slowest-races": {
+      "http_code": 200,
+      "time_namelookup": 0.001353,
+      "time_connect": 0.052075,
+      "time_appconnect": 0.095407,
+      "time_starttransfer": 4.275296,
+      "time_total": 4.27688,
+      "size_download": 2182,
+      "speed_download": 510
+    },
+    "/charts/time-between-races": {
+      "http_code": 200,
+      "time_namelookup": 0.001381,
+      "time_connect": 0.025842,
+      "time_appconnect": 0.061267,
+      "time_starttransfer": 4.204266,
+      "time_total": 4.207457,
+      "size_download": 2598,
+      "speed_download": 617
+    }
+  },
+  "analytics_wall_seconds": 7.564873875118792
+}

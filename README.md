@@ -1,3 +1,7 @@
+Production: https://typeracer.tusharreddy.com/
+
+The app now runs on Cloudflare with local TypeScript analysis. See [MIGRATION.md](MIGRATION.md) for build and deployment steps, and [the measurements](metrics/REPORT.md). The Python setup below is retained for reference.
+
 # TypeRacer Analytics Dashboard
 
 A stateless web application for analyzing TypeRacer race data with an enhanced, minimalist design. Built with React frontend and FastAPI backend using Polars for high-performance data processing.

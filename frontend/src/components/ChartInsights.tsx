@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lightbulb, TrendingUp, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface ChartInsightsProps {
   insights: string[];
@@ -7,7 +7,7 @@ interface ChartInsightsProps {
   title: string;
 }
 
-const ChartInsights: React.FC<ChartInsightsProps> = ({ insights, hasInsights, title }) => {
+const ChartInsights: React.FC<ChartInsightsProps> = ({ insights, hasInsights }) => {
   return (
     <div className="p-4 h-full">
       <div className="flex items-center space-x-2 mb-4">

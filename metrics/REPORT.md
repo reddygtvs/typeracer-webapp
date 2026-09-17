@@ -125,3 +125,25 @@ Raw counters are saved in `usage.json`. Devin CLI is available as `/opt/homebrew
 Codex weekly account usage was 65% at the first reading during this task and 70% at the later reading. This is shared account usage and is not an exact task charge. Session token counters include repeated context and cached input; they are not unique text or a billing estimate. Devin session counters are separate.
 
 Raw files: `before-http.json`, `after-http.json`, `browser.json`, `after-compute.json`, `sample-reference.json`, `before-audit.json`, `after-audit.json`, `usage.json`. Re-run `benchmark.py`, `compute-benchmark.ts`, and `npm test` to check future changes.
+
+## Dataset and color correction, September 17, 2026
+
+The first deployment retained the old sample: 34,617 races ending December 10, 2024. The measurements above use that sample and remain the original migration baseline. The sample is now 43,253 races ending August 12, 2026.
+
+The new sample combines the existing 41,718-row CSV with official TypeRacer export ranges 41,000–41,999, 42,000–42,999 and 43,000–43,253. All 1,718 overlapping rows match the seven analytics fields after dates are normalized to seconds. Race IDs 1 through 43,253 are complete and unique. Extra export fields, including key logs, are excluded. Mean speed is 101.1103 WPM; mean accuracy is 97.7480%; wins: 18,625. Original input precision is retained.
+
+Restored the original chart colors, including purple rolling averages, orange daily speed, red accuracy distribution, blue scatter points, and continuous color scales. Percentage colorbars use 0–100 units. The all-green charts were an unintended migration change.
+
+The sample date is visible on the load screen. Saved sample data has a version. The known old sample is refreshed by exact content hash; other saved uploads remain intact. Best-speed display is limited to one decimal place.
+
+Current production version: `47372c74-b63c-4233-adc0-2ce4e4fdca1f`. Build, ESLint and 16 tests pass. All 20 charts render with the current data. Browser console errors: none. No horizontal overflow at 375 pixels. Saved old sample refresh verified in production. Current official export timestamps with fractional seconds are accepted.
+
+Current 43,253-row calculation median: 860.5 ms, seven Node runs. This uses 24.9% more races and full numeric precision. Original 34,617-row metrics above are not replaced.
+
+- `/`: 306 transferred bytes; median TTFB 132.5 ms, three curl runs.
+- `/assets/index-CKISl6TF.js`: 79,721 transferred bytes; median TTFB 129.7 ms, three curl runs.
+- `/sample-data.csv.gz`: 1,084,518 transferred bytes; median TTFB 122.0 ms, three curl runs.
+
+The current sample is larger because it has more races and retains full numeric precision. HTTP tests use the same DNS override method as the original report. No new browser timing comparison is claimed. Raw current results: `current-http.json`, `current-compute.json`.
+
+SWE-2 Medium completed the color edits. Its final test command required CLI confirmation and was not run by Devin; Codex ran and verified all checks. Usage counters are in `usage.json`. Latest shared Codex weekly usage: 75%, versus 65% at the initial reading. This includes other tasks.

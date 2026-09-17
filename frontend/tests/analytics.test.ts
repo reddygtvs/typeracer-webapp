@@ -106,3 +106,14 @@ test("large arrays do not overflow argument limits", () => {
   );
   chart("win-rate-after-win", r);
 });
+
+test("current official exports accept microsecond timestamps", () => {
+  const r = parseCSV(csv.replace("12:00:00", "12:00:00.757000"));
+  assert.equal(r[0].d, "2026-09-01T12:00:00.757000Z");
+  assert.throws(() => parseCSV(csv.replace("2026-09-01 12:00:00", "2026-02-30 12:00:00.757000")));
+});
+test("current sample has every race exactly once", () => {
+  assert.equal(sample.length, 43253);
+  sample.forEach((r, i) => assert.equal(r.n, i + 1));
+  assert.equal(sample.at(-1)?.d.slice(0, 10), "2026-08-12");
+});

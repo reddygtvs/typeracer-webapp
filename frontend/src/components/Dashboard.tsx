@@ -48,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         
         <StatsCard
           title="Best Race"
-          value={`${stats.best_wpm} WPM`}
+          value={`${stats.best_wpm.toFixed(1)} WPM`}
           icon={Trophy}
           description={`${winRate}% win rate`}
           color="yellow"

@@ -4,14 +4,14 @@
     "weekly_used_percent": 65,
     "scope": "Session token counters include repeated context and cached input. They are not unique text or a billing estimate. Account usage readings were taken during this task and include other tasks.",
     "session_token_usage": {
-      "input_tokens": 15108740,
-      "cached_input_tokens": 13643776,
+      "input_tokens": 22971895,
+      "cached_input_tokens": 20555520,
       "cache_write_input_tokens": 0,
-      "output_tokens": 36593,
-      "reasoning_output_tokens": 8418,
-      "total_tokens": 15145333
+      "output_tokens": 54985,
+      "reasoning_output_tokens": 11726,
+      "total_tokens": 23026880
     },
-    "last_weekly_used_percent": 70
+    "last_weekly_used_percent": 75
   },
   "devin": {
     "model": "swe-2-high",
@@ -52,6 +52,17 @@
           "total_steps": 11
         },
         "purpose": "insights"
+      },
+      {
+        "id": "voracious-wizard",
+        "model": "SWE-2 Medium",
+        "purpose": "Restore original chart colors",
+        "metrics": {
+          "total_prompt_tokens": 645843,
+          "total_completion_tokens": 10162,
+          "total_cached_tokens": 557988,
+          "total_steps": 28
+        }
       }
     ],
     "note": "Free model label confirmed by Devin CLI. Includes one interrupted review and two completed tasks. A small connection probe is not included. Canceled requests may not be fully represented."

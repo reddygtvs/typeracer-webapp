@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Upload, BarChart3 } from "lucide-react";
 import FileUpload from "./components/FileUpload";
+const SAMPLE_VERSION = "sskhynix-43253";
 const Dashboard = lazy(() => import("./components/Dashboard"));
 import { RaceData } from "./types";
 import { getStats } from "./utils/api";
@@ -24,6 +25,7 @@ function App() {
         "typeracer-csv",
         "typeracer-stats",
         "typeracer-source",
+        "typeracer-sample-version",
       ])
         localStorage.removeItem(key);
     } catch {
@@ -39,6 +41,11 @@ function App() {
         setData({ stats, csvData });
         try {
           localStorage.setItem("typeracer-csv", csvData);
+          if (source !== "restored") {
+            localStorage.setItem("typeracer-source", source);
+            if (source === "sample") localStorage.setItem("typeracer-sample-version", SAMPLE_VERSION);
+            else localStorage.removeItem("typeracer-sample-version");
+          }
         } catch {
           /* Valid data remains usable when storage is unavailable. */
         }
@@ -85,7 +92,7 @@ function App() {
     try {
       const compressed = typeof DecompressionStream !== "undefined";
       const response = await fetch(
-        compressed ? "/sample-data.csv.gz" : "/sample-data.csv",
+        (compressed ? "/sample-data.csv.gz" : "/sample-data.csv") + "?v=" + SAMPLE_VERSION,
       );
       if (!response.ok) throw new Error("Could not fetch sample data.");
       const csvData =
@@ -122,13 +129,28 @@ function App() {
     }
     if (savedCSV) {
       setLoading(true);
-      void processCSVData(savedCSV, "restored", ++requestVersion.current);
+      const version = ++requestVersion.current;
+      void (async () => {
+        let refresh = false;
+        try {
+          const source = localStorage.getItem("typeracer-source");
+          refresh = source === "sample" && localStorage.getItem("typeracer-sample-version") !== SAMPLE_VERSION;
+          if (!source && crypto.subtle) {
+            const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(savedCSV));
+            const hash = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+            refresh = hash === "24d07bba6158579d118e739ab36224d48217a48b4cb2c3ac339cdc4fe409b8a2";
+          }
+        } catch { /* Keep saved uploads when source cannot be checked. */ }
+        if (version !== requestVersion.current) return;
+        if (refresh) await handleSampleData();
+        else await processCSVData(savedCSV, "restored", version);
+      })();
     }
     const request = requestVersion;
     return () => {
       request.current++;
     };
-  }, [processCSVData]);
+  }, [processCSVData, handleSampleData]);
 
   return (
     <div className="min-h-screen bg-premium">

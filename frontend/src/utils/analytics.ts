@@ -63,9 +63,9 @@ export function parseCSV(csv: string): Race[] {
       !Number.isInteger(row.c) ||
       row.c < row.r ||
       !row.t ||
-      !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(d) ||
+      !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,6})?$/.test(d) ||
       !Number.isFinite(Date.parse(iso)) ||
-      new Date(iso).toISOString().slice(0, 19) + "Z" !== iso
+      new Date(iso).toISOString().slice(0, 19) !== iso.slice(0, 19)
     )
       throw Error(
         `Invalid race data on row ${i + 2}. Accuracy must be 0 to 1 or include %. Dates must use UTC.`,
@@ -106,27 +106,57 @@ export function chart(id: string, rows: Race[]) {
     yTitle = "WPM";
   const layout: Partial<Layout> = { showlegend: false };
   const insights: string[] = [];
+  const PALETTE = [
+    "#39FF14",
+    "#FF6B6B",
+    "#74B9FF",
+    "#A29BFE",
+    "#FD79A8",
+    "#FDCB6E",
+    "#6C5CE7",
+    "#00B894",
+    "#E17055",
+    "#81ECEC",
+  ];
   const trace = (
     x: (string | number)[],
     y: (number | null)[],
     type = "scatter",
     name = "",
+    color = "#39FF14",
+    width = 2,
   ) => ({
     x,
     y,
     type,
     mode: "lines",
     name,
-    line: { color: "#39FF14", width: 2 },
-    marker: { color: "#39FF14" },
+    line: { color, width },
+    marker: { color },
   });
-  const bars = (groups: [string, Race[]][], value: (r: Race[]) => number) => {
+  const bars = (
+    groups: [string, Race[]][],
+    value: (r: Race[]) => number,
+    scale?: string,
+    unit = "",
+  ) => {
+    const t = trace(
+      groups.map((g) => g[0]),
+      groups.map((g) => value(g[1])),
+      "bar",
+    );
     data.push(
-      trace(
-        groups.map((g) => g[0]),
-        groups.map((g) => value(g[1])),
-        "bar",
-      ),
+      scale
+        ? {
+            ...t,
+            marker: {
+              color: t.y,
+              colorscale: scale,
+              showscale: true,
+              colorbar: { ticksuffix: unit },
+            },
+          }
+        : t,
     );
   };
   const avg = (r: Race[]) => mean(r.map((v) => v.w));
@@ -162,6 +192,8 @@ export function chart(id: string, rows: Race[]) {
           bins.map((_, i) => lo + (i + 0.5) * step),
           bins,
           "bar",
+          "",
+          acc ? "#ef4444" : "#39FF14",
         ),
       );
       insights.push(
@@ -186,13 +218,18 @@ export function chart(id: string, rows: Race[]) {
           ? "Average WPM by Hour (UTC)"
           : "Average WPM Over Time";
       xTitle = id === "hourly-performance" ? "Hour (UTC)" : "Date";
-      data.push(
-        trace(
-          groups.map((g) => g[0]),
-          groups.map((g) => avg(g[1])),
-          id === "hourly-performance" ? "bar" : "scatter",
-        ),
-      );
+      if (id === "hourly-performance") bars(groups, avg, "Blues");
+      else
+        data.push(
+          trace(
+            groups.map((g) => g[0]),
+            groups.map((g) => avg(g[1])),
+            "scatter",
+            "",
+            id === "performance-over-time" ? "#10b981" : "#f97316",
+            id === "performance-over-time" ? 3 : 2,
+          ),
+        );
       break;
     }
     case "rolling-average":
@@ -202,6 +239,9 @@ export function chart(id: string, rows: Race[]) {
         trace(
           rows.map((r) => r.n),
           rolling(rows, 100),
+          "scatter",
+          "",
+          "#8b5cf6",
         ),
       );
       if (rows.length < 100) insights.push("At least 100 races are required.");
@@ -219,6 +259,9 @@ export function chart(id: string, rows: Race[]) {
               m = mean(v);
             return Math.sqrt(v.reduce((s, w) => s + (w - m) ** 2, 0) / 29);
           }),
+          "scatter",
+          "",
+          "#f97316",
         ),
       );
       insights.push("Lower values show more consistent speed.");
@@ -230,6 +273,8 @@ export function chart(id: string, rows: Race[]) {
       bars(
         group(rows, (r) => r.r),
         (r) => (100 * r.length) / rows.length,
+        "Viridis",
+        "%",
       );
       break;
     case "accuracy-by-rank":
@@ -239,6 +284,8 @@ export function chart(id: string, rows: Race[]) {
       bars(
         group(rows, (r) => r.r),
         (r) => mean(r.map((v) => v.a)) * 100,
+        "RdYlGn",
+        "%",
       );
       data[0].text = data[0].y.map((v) => `${Number(v).toFixed(1)}%`);
       data[0].texttemplate = "%{text}";
@@ -257,7 +304,7 @@ export function chart(id: string, rows: Race[]) {
           rows.map((r) => r.a * 100),
         ),
         mode: "markers",
-        marker: { color: "#39FF14", size: 3, opacity: 0.35 },
+        marker: { color: "#636efa", size: 3, opacity: 0.6 },
       });
       break;
     case "win-rate-monthly":
@@ -268,6 +315,7 @@ export function chart(id: string, rows: Race[]) {
         monthly(),
         (r) => (100 * r.filter((v) => v.r === 1).length) / r.length,
       );
+      data[0].marker = { color: "#eab308" };
       break;
     case "cumulative-accuracy": {
       title = "Cumulative Average Accuracy";
@@ -278,6 +326,9 @@ export function chart(id: string, rows: Race[]) {
         trace(
           rows.map((r) => r.n),
           rows.map((r, i) => ((sum += r.a) * 100) / (i + 1)),
+          "scatter",
+          "",
+          "#8b5cf6",
         ),
       );
       break;
@@ -291,26 +342,36 @@ export function chart(id: string, rows: Race[]) {
       xTitle = id === "wpm-by-rank-boxplot" ? "Rank" : "Text ID";
       const groups =
         id === "wpm-by-rank-boxplot" ? group(rows, (r) => r.r) : frequent(10);
-      for (const [key, rs] of groups)
+      const boxplot = id === "wpm-by-rank-boxplot";
+      groups.forEach(([key, rs], i) => {
+        const color = boxplot ? "#636efa" : PALETTE[i % PALETTE.length];
         data.push({
           type: "box",
           name: key,
           y: rs.map((r) => r.w),
           boxpoints: "outliers",
-          marker: { color: "#39FF14" },
+          marker: { color },
+          line: { color },
         });
+      });
       break;
     }
     case "racers-impact": {
       title = "Performance by Number of Racers";
       xTitle = "Racers";
       const groups = group(rows, (r) => r.c);
-      data.push(
-        trace(
+      data.push({
+        ...trace(
           groups.map((g) => g[0]),
           groups.map((g) => avg(g[1])),
+          "scatter",
+          "",
+          "#14b8a6",
+          3,
         ),
-      );
+        mode: "lines+markers",
+        marker: { color: "#14b8a6", size: 6 },
+      });
       break;
     }
     case "top-texts": {
@@ -322,7 +383,7 @@ export function chart(id: string, rows: Race[]) {
       const selected = [
         ...new Map([...groups.slice(0, 10), ...groups.slice(-10)]).entries(),
       ];
-      bars(selected, avg);
+      bars(selected, avg, "Viridis");
       layout.xaxis = { type: "category" };
       if (!selected.length)
         insights.push("At least five races on one text are required.");
@@ -331,19 +392,20 @@ export function chart(id: string, rows: Race[]) {
     case "frequent-texts-improvement":
       title = "Top 5 Texts: 10-Race Average";
       xTitle = "Date";
-      for (const [key, rs] of frequent()) {
+      frequent().forEach(([key, rs], i) => {
         const ordered = [...rs].sort((a, b) => a.d.localeCompare(b.d));
         if (rs.length >= 3)
-          data.push({
-            ...trace(
+          data.push(
+            trace(
               ordered.map((r) => r.d),
               rolling(ordered, 10, true),
               "scatter",
               key,
+              PALETTE[i % PALETTE.length],
+              3,
             ),
-            line: { width: 2 },
-          });
-      }
+          );
+      });
       layout.showlegend = true;
       break;
     case "win-rate-after-win": {
@@ -360,6 +422,8 @@ export function chart(id: string, rows: Race[]) {
       bars(
         [...groups].sort((a, b) => a[0].localeCompare(b[0])),
         (r) => (100 * r.filter((v) => v.r === 1).length) / r.length,
+        "Viridis",
+        "%",
       );
       insights.push(
         "The first race is excluded because it has no previous result.",
@@ -383,8 +447,8 @@ export function chart(id: string, rows: Race[]) {
           ),
           mode: "markers",
           marker: {
-            color: name === "Fastest" ? "#39FF14" : "#ff6b6b",
-            size: 9,
+            color: name === "Fastest" ? "red" : "blue",
+            size: 10,
           },
         });
       layout.showlegend = true;
@@ -416,6 +480,7 @@ export function chart(id: string, rows: Race[]) {
           .map((r, i) => [labels[i], r] as [string, Race[]])
           .filter((g) => g[1].length >= 5),
         avg,
+        "RdYlGn",
       );
       insights.push("Each displayed group has at least five races.");
       break;

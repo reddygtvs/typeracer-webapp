@@ -94,7 +94,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       
       <div className="text-center space-y-2">
         <p className="text-premium-sm text-green-400/80 font-medium">
-          34,617 sample race records included
+          43,253 races · sskhynix · through August 12, 2026
         </p>
         <p className="text-premium-xs text-white/50">
           Expected format: Race #, WPM, Accuracy, Rank, # Racers, Text ID, Date/Time (UTC)

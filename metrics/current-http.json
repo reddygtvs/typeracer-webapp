@@ -1,0 +1,62 @@
+{
+  "/": [
+    {
+      "http_code": 200,
+      "size_download": 306,
+      "time_starttransfer": 0.13983,
+      "time_total": 0.139918
+    },
+    {
+      "http_code": 200,
+      "size_download": 306,
+      "time_starttransfer": 0.114734,
+      "time_total": 0.117713
+    },
+    {
+      "http_code": 200,
+      "size_download": 306,
+      "time_starttransfer": 0.132453,
+      "time_total": 0.132606
+    }
+  ],
+  "/assets/index-CKISl6TF.js": [
+    {
+      "http_code": 200,
+      "size_download": 79721,
+      "time_starttransfer": 0.153847,
+      "time_total": 0.19863
+    },
+    {
+      "http_code": 200,
+      "size_download": 79721,
+      "time_starttransfer": 0.124462,
+      "time_total": 0.170089
+    },
+    {
+      "http_code": 200,
+      "size_download": 79721,
+      "time_starttransfer": 0.12974,
+      "time_total": 0.168157
+    }
+  ],
+  "/sample-data.csv.gz": [
+    {
+      "http_code": 200,
+      "size_download": 1084518,
+      "time_starttransfer": 0.121983,
+      "time_total": 0.30383
+    },
+    {
+      "http_code": 200,
+      "size_download": 1084518,
+      "time_starttransfer": 0.112042,
+      "time_total": 0.284253
+    },
+    {
+      "http_code": 200,
+      "size_download": 1084518,
+      "time_starttransfer": 0.132767,
+      "time_total": 0.316347
+    }
+  ]
+}
